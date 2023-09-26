@@ -42,15 +42,6 @@ set(CC_FLAGS
     -ffat-lto-objects
     -fallow-store-data-races)
 
-set(CC_STDDRIVER_FLAGS
-    ${CC_FLAGS}
-    -Wno-maybe-uninitialized
-    -Wno-unused-variable
-    -Wno-sign-compare
-    -Wno-float-conversion
-    -Wno-null-dereference
-)
-
 set(CXX_FLAGS 
     -Weffc++
     -Wsign-conversion
@@ -127,7 +118,7 @@ execute_process(COMMAND ${GIT_EXECUTABLE} show -s --format=%ad HEAD --date=iso-s
 configure_file("${PROJECT_SOURCE_DIR}/version.h.in" "${CMAKE_BINARY_DIR}/version.h" @ONLY)
 
 target_compile_definitions(standard_driver PRIVATE ${DEFINITIONS})
-target_compile_options(standard_driver PRIVATE "$<$<COMPILE_LANGUAGE:C>:${CC_STDDRIVER_FLAGS}>")
+target_compile_options(standard_driver PRIVATE "$<$<COMPILE_LANGUAGE:C>:${CC_FLAGS}>")
 target_compile_options(standard_driver PRIVATE "$<$<CONFIG:DEBUG>:${DEBUG_FLAGS}>")
 target_compile_options(standard_driver PRIVATE "$<$<CONFIG:RELEASE>:${RELEASE_FLAGS}>")
 
