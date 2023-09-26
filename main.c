@@ -13,6 +13,8 @@
 #include "gpio.h"
 #include "sys.h"
 
+#include "tx_api.h"
+
 #define LED_INIT()  (PH->MODE = ((PH->MODE &(~(0x3ful << 4*2))) | (0x15ul << 4 *2)))
 #define LED_RED     PH4
 #define LED_YELLOW  PH5
@@ -63,6 +65,10 @@ void UART0_Init(void)
 
 }
 
+void tx_application_define(void *first_unused_memory) 
+{
+}
+
 int main()
 {
     int32_t i = 0;
@@ -75,6 +81,8 @@ int main()
     
     /* Enable GPIO PH to control LED */
     CLK->AHBCLK0 |= CLK_AHBCLK0_GPHCKEN_Msk;
+
+    tx_kernel_enter();
 
     printf("\n");
     printf("+------------------------------------------------------------------+\n");

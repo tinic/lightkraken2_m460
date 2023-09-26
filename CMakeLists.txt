@@ -11,6 +11,15 @@ set(THREADX_ARCH cortex_m4)
 set(THREADX_TOOLCHAIN gnu)
 
 add_compile_definitions(
+    TX_MAX_PRIORITIES=32
+    TX_DISABLE_PREEMPTION_THRESHOLD
+    TX_DISABLE_REDUNDANT_CLEARING
+    TX_DISABLE_NOTIFY_CALLBACKS
+    TX_NOT_INTERRUPTABLE
+    TX_TIMER_PROCESS_IN_ISR
+    TX_REACTIVATE_INLINE
+    TX_DISABLE_STACK_FILLING
+    TX_INLINE_THREAD_RESUME_SUSPEND
     __HXT=12000000
     __FPU_PRESENT=1U
     NDEBUG 
@@ -101,6 +110,7 @@ set(DUMP_FILE ${PROJECT_BINARY_DIR}/${PROJECT_NAME}.S)
 add_executable(${PROJECT_NAME}.elf 
     ${PROJECT_SOURCE_DIR}/main.c
     ${PROJECT_SOURCE_DIR}/stubs.c
+    ${PROJECT_SOURCE_DIR}/tx_initialize_low_level.c
     ${BSP_DIR}/Library/Device/Nuvoton/m460/Source/GCC/startup_M460.S
     ${BSP_DIR}/Library/Device/Nuvoton/m460/Source/system_m460.c
 )
