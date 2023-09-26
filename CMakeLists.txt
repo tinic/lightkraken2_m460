@@ -3,8 +3,6 @@ cmake_minimum_required(VERSION 3.27)
 # M46x M467 M467SJHAN
 project(lightkraken2 C CXX ASM)
 
-set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
-
 set(BASE_ADDRESS 0x00000000)
 
 set(CMAKE_C_COMPILER_WORKS 1 CACHE INTERNAL "")
@@ -12,19 +10,6 @@ set(CMAKE_CXX_COMPILER_WORKS 1 CACHE INTERNAL "")
 
 set(BSP_DIR ${PROJECT_SOURCE_DIR}/m460bsp)
 set(LD_SCRIPT ${BSP_DIR}/Library/Device/Nuvoton/m460/Source/GCC/gcc_arm.ld)
-
-set(STACK_SIZE 0x4000)
-set(HEAP_SIZE 0x20000)
-
-set(ASM_FLAGS 
-    --cpu Cortex-M4.fp.sp
-    -g
-    --16
-    --apcs=interwork
-    --pd \"__MICROLIB SETA 1\"
-    --pd \"Stack_Size SETA ${STACK_SIZE}\"
-    --pd \"Heap_Size SETA ${HEAP_SIZE}\"
-)
 
 set(CC_FLAGS
     -flto=auto
@@ -56,6 +41,15 @@ set(CC_FLAGS
     -ffast-math
     -ffat-lto-objects
     -fallow-store-data-races)
+
+set(CC_STDDRIVER_FLAGS
+    ${CC_FLAGS}
+    -Wno-maybe-uninitialized
+    -Wno-unused-variable
+    -Wno-sign-compare
+    -Wno-float-conversion
+    -Wno-null-dereference
+)
 
 set(CXX_FLAGS 
     -Weffc++
@@ -133,9 +127,7 @@ execute_process(COMMAND ${GIT_EXECUTABLE} show -s --format=%ad HEAD --date=iso-s
 configure_file("${PROJECT_SOURCE_DIR}/version.h.in" "${CMAKE_BINARY_DIR}/version.h" @ONLY)
 
 target_compile_definitions(standard_driver PRIVATE ${DEFINITIONS})
-target_link_options(standard_driver PRIVATE ${LD_FLAGS})
-target_compile_options(standard_driver PRIVATE "$<$<COMPILE_LANGUAGE:C>:${CC_FLAGS}>")
-target_compile_options(standard_driver PRIVATE "$<$<COMPILE_LANGUAGE:CXX>:${CXX_FLAGS}>")
+target_compile_options(standard_driver PRIVATE "$<$<COMPILE_LANGUAGE:C>:${CC_STDDRIVER_FLAGS}>")
 target_compile_options(standard_driver PRIVATE "$<$<CONFIG:DEBUG>:${DEBUG_FLAGS}>")
 target_compile_options(standard_driver PRIVATE "$<$<CONFIG:RELEASE>:${RELEASE_FLAGS}>")
 
