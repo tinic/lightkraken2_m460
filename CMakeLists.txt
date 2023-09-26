@@ -5,10 +5,22 @@ project(lightkraken2 C CXX ASM)
 
 set(BASE_ADDRESS 0x00000000)
 
-set(CMAKE_C_COMPILER_WORKS 1 CACHE INTERNAL "")
-set(CMAKE_CXX_COMPILER_WORKS 1 CACHE INTERNAL "")
+set(CMAKE_WARN_DEPRECATED OFF CACHE BOOL "" FORCE)
+
+set(THREADX_ARCH cortex_m4)
+set(THREADX_TOOLCHAIN gnu)
+
+add_compile_definitions(
+    __HXT=12000000
+    __FPU_PRESENT=1U
+    NDEBUG 
+    ARM_MATH_CM4)
 
 set(BSP_DIR ${PROJECT_SOURCE_DIR}/m460bsp)
+set(THREADX_DIR ${PROJECT_SOURCE_DIR}/threadx)
+set(FILEX_DIR ${PROJECT_SOURCE_DIR}/filex)
+set(NETXDUO_DIR ${PROJECT_SOURCE_DIR}/netxduo)
+
 set(LD_SCRIPT ${BSP_DIR}/Library/Device/Nuvoton/m460/Source/GCC/gcc_arm.ld)
 
 set(CC_FLAGS
@@ -86,12 +98,6 @@ set(HEX_FILE ${PROJECT_BINARY_DIR}/${PROJECT_NAME}.hex)
 set(BIN_FILE ${PROJECT_BINARY_DIR}/${PROJECT_NAME}.bin)
 set(DUMP_FILE ${PROJECT_BINARY_DIR}/${PROJECT_NAME}.S)
 
-add_compile_definitions(
-    __HXT=12000000
-    __FPU_PRESENT=1U
-    NDEBUG 
-    ARM_MATH_CM4)
-
 add_executable(${PROJECT_NAME}.elf 
     ${PROJECT_SOURCE_DIR}/main.c
     ${PROJECT_SOURCE_DIR}/stubs.c
@@ -108,6 +114,15 @@ target_include_directories(${PROJECT_NAME}.elf PRIVATE ${CMAKE_BINARY_DIR})
 add_subdirectory(${BSP_DIR}/Library/StdDriver/src)
 target_link_libraries(${PROJECT_NAME}.elf standard_driver)
 
+add_subdirectory(${THREADX_DIR})
+target_link_libraries(${PROJECT_NAME}.elf threadx)
+
+add_subdirectory(${FILEX_DIR})
+target_link_libraries(${PROJECT_NAME}.elf filex)
+
+add_subdirectory(${NETXDUO_DIR})
+target_link_libraries(${PROJECT_NAME}.elf netxduo)
+
 # Generate version.h
 find_package(Git)
 
@@ -121,6 +136,22 @@ target_compile_definitions(standard_driver PRIVATE ${DEFINITIONS})
 target_compile_options(standard_driver PRIVATE "$<$<COMPILE_LANGUAGE:C>:${CC_FLAGS}>")
 target_compile_options(standard_driver PRIVATE "$<$<CONFIG:DEBUG>:${DEBUG_FLAGS}>")
 target_compile_options(standard_driver PRIVATE "$<$<CONFIG:RELEASE>:${RELEASE_FLAGS}>")
+
+target_compile_definitions(threadx PRIVATE ${DEFINITIONS})
+target_compile_options(threadx PRIVATE "$<$<COMPILE_LANGUAGE:ASM>:${CC_FLAGS}>")
+target_compile_options(threadx PRIVATE "$<$<COMPILE_LANGUAGE:C>:${CC_FLAGS}>")
+target_compile_options(threadx PRIVATE "$<$<CONFIG:DEBUG>:${DEBUG_FLAGS}>")
+target_compile_options(threadx PRIVATE "$<$<CONFIG:RELEASE>:${RELEASE_FLAGS}>")
+
+target_compile_definitions(filex PRIVATE ${DEFINITIONS})
+target_compile_options(filex PRIVATE "$<$<COMPILE_LANGUAGE:C>:${CC_FLAGS}>")
+target_compile_options(filex PRIVATE "$<$<CONFIG:DEBUG>:${DEBUG_FLAGS}>")
+target_compile_options(filex PRIVATE "$<$<CONFIG:RELEASE>:${RELEASE_FLAGS}>")
+
+target_compile_definitions(netxduo PRIVATE ${DEFINITIONS})
+target_compile_options(netxduo PRIVATE "$<$<COMPILE_LANGUAGE:C>:${CC_FLAGS}>")
+target_compile_options(netxduo PRIVATE "$<$<CONFIG:DEBUG>:${DEBUG_FLAGS}>")
+target_compile_options(netxduo PRIVATE "$<$<CONFIG:RELEASE>:${RELEASE_FLAGS}>")
 
 target_compile_definitions(${PROJECT_NAME}.elf PRIVATE ${DEFINITIONS})
 target_link_options(${PROJECT_NAME}.elf PRIVATE ${LD_FLAGS})
