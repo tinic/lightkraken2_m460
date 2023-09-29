@@ -2,4 +2,8 @@
     "cmake.configureSettings": {
         "CMAKE_TOOLCHAIN_FILE": "../cmake/arm-gcc-toolchain.cmake",
     },
+    "C_Cpp.files.exclude": {
+        "version.h.in": true,
+    },
+    "cmake.configureOnOpen": true,
 }
