@@ -14,6 +14,7 @@
                 "./nulink.cfg",
                 "./numicro_m4.cfg"
             ],
+            "preLaunchTask": "install",
             "openOCDPreConfigLaunchCommands": ["gdb_breakpoint_override hard"]
         }
     ]

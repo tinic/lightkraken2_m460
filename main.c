@@ -82,8 +82,6 @@ int main()
     /* Enable GPIO PH to control LED */
     CLK->AHBCLK0 |= CLK_AHBCLK0_GPHCKEN_Msk;
 
-    //tx_kernel_enter();
-
     printf("\n");
     printf("+------------------------------------------------------------------+\n");
     printf("|              Simple Blinky Demo                                  |\n");
@@ -94,8 +92,8 @@ int main()
     LED_YELLOW = 1;
     LED_RED = 0;
     LED_GREEN = 0;
-    while(1)
-    {
+
+    for(size_t c = 0; c < 2; c++) {
         LED_YELLOW = 0;
         LED_RED = 1;
         LED_GREEN = 1;
@@ -110,6 +108,8 @@ int main()
         CLK_SysTickLongDelay(200000);
         printf("Iter %d\n", i++);
     }
+
+    tx_kernel_enter();
 
 
 }
