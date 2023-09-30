@@ -1,0 +1,19 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "cwd": "${workspaceFolder}/openocd",
+            "executable": "${workspaceFolder}/build/lightkraken2.elf",
+            "name": "Debug Main Firmware",
+            "request": "launch",
+            "type": "cortex-debug",
+            "servertype": "openocd",
+            "device": "M467HJHAN",
+            "interface": "swd",
+            "configFiles": [
+                "./nulink.cfg",
+                "./numicro_m4.cfg"
+            ]
+        }
+    ]
+}

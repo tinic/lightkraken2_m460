@@ -82,7 +82,7 @@ int main()
     /* Enable GPIO PH to control LED */
     CLK->AHBCLK0 |= CLK_AHBCLK0_GPHCKEN_Msk;
 
-    tx_kernel_enter();
+    //tx_kernel_enter();
 
     printf("\n");
     printf("+------------------------------------------------------------------+\n");
