@@ -179,5 +179,5 @@ add_custom_command(TARGET ${PROJECT_NAME}.elf POST_BUILD
 
 message(${PROJECT_SOURCE_DIR})
 
-set(PROGRAM_CMD "./openocd -f ./nulink.cfg -f ./numicro_m4.cfg -c \"program ${PROJECT_BINARY_DIR}/${PROJECT_NAME}.bin ${BASE_ADDRESS} verify reset exit\"")
+set(PROGRAM_CMD "./openocd -f ./nulink.cfg -f ./numicro_m4.cfg -c \"adapter_khz 12000\" -c \"program ${PROJECT_BINARY_DIR}/${PROJECT_NAME}.bin ${BASE_ADDRESS} verify reset exit\"")
 install(CODE "execute_process(COMMAND ${PROGRAM_CMD} WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/openocd)")
