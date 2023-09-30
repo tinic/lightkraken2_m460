@@ -120,52 +120,19 @@ void SYS_Lightkraken_Init() {
     SystemCoreClockUpdate();
 
     // CLKO -> 25Mhz, PB14 JP7.33
-    SYS->GPB_MFP3 = SYS_GPB_MFP3_PB14MFP_CLKO | SYS_GPB_MFP3_PB13MFP_UART0_TXD | SYS_GPB_MFP3_PB12MFP_UART0_RXD;
+    SET_CLKO_PB14();
 
-    /* Lock protected registers */
-    SYS_LockReg();
-}
-
-void SYS_Init(void)
-{
-
-    /*---------------------------------------------------------------------------------------------------------*/
-    /* Init System Clock                                                                                       */
-    /*---------------------------------------------------------------------------------------------------------*/
-
-    /* Enable HIRC clock */
-    CLK_EnableXtalRC(CLK_PWRCTL_HIRCEN_Msk);
-
-    /* Wait for HIRC clock ready */
-    CLK_WaitClockReady(CLK_STATUS_HIRCSTB_Msk);
-
-    /* Set core clock to 120MHz */
-    CLK_SetCoreClock(120000000);
-
-    /* Enable UART0 module clock */
-    CLK_EnableModuleClock(UART0_MODULE);
-
-    /* Select UART0 module clock source as HIRC and UART0 module clock divider as 1 */
-    CLK_SetModuleClock(UART0_MODULE, CLK_CLKSEL1_UART0SEL_HIRC, CLK_CLKDIV0_UART0(1));
-
-    /*---------------------------------------------------------------------------------------------------------*/
-    /* Init I/O Multi-function                                                                                 */
-    /*---------------------------------------------------------------------------------------------------------*/
-
-    /* Set multi-function pins for UART0 RXD and TXD */
-    SET_UART0_RXD_PB12();
-    SET_UART0_TXD_PB13();
-
-}
-
-void UART0_Init(void)
-{
     /*---------------------------------------------------------------------------------------------------------*/
     /* Init UART                                                                                               */
     /*---------------------------------------------------------------------------------------------------------*/
-    UART0->LINE = UART_PARITY_NONE | UART_STOP_BIT_1 | UART_WORD_LEN_8;
-    UART0->BAUD = UART_BAUD_MODE2 | UART_BAUD_MODE2_DIVIDER(__HIRC, 115200);
+    SET_UART0_RXD_PB12();
+    SET_UART0_TXD_PB13();
 
+    UART0->LINE = UART_PARITY_NONE | UART_STOP_BIT_1 | UART_WORD_LEN_8;
+    UART0->BAUD = UART_BAUD_MODE2 | UART_BAUD_MODE2_DIVIDER(__HXT, 115200);
+
+    /* Lock protected registers */
+    SYS_LockReg();
 }
 
 static TX_THREAD thread_0 = { 0 } ;
@@ -216,16 +183,6 @@ void tx_application_define(void *first_unused_memory)
 
 int main()
 {
-    // Early bringup
-
-    SYS_UnlockReg();
-
-    SYS_Init();
-
-    UART0_Init();
-
-    // Application startup
-
     SYS_Lightkraken_Init();
 
     tx_kernel_enter();
