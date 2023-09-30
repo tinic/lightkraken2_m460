@@ -13,7 +13,8 @@
             "configFiles": [
                 "./nulink.cfg",
                 "./numicro_m4.cfg"
-            ]
+            ],
+            "openOCDPreConfigLaunchCommands": ["gdb_breakpoint_override hard"]
         }
     ]
 }
