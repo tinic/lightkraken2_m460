@@ -120,7 +120,7 @@ void SYS_Lightkraken_Init() {
     SystemCoreClockUpdate();
 
     // CLKO -> 25Mhz, PB14 JP7.33
-    SYS->GPB_MFP3 = SYS_GPB_MFP3_PB14MFP_CLKO;
+    SYS->GPB_MFP3 = SYS_GPB_MFP3_PB14MFP_CLKO | SYS_GPB_MFP3_PB13MFP_UART0_TXD | SYS_GPB_MFP3_PB12MFP_UART0_RXD;
 
     /* Lock protected registers */
     SYS_LockReg();
