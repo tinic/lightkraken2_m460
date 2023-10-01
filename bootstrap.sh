@@ -1,6 +1,4 @@
 #!/bin/sh
-python -m venv .venv
-source .venv/bin/activate
 pip3 install FATtools
 pip3 install npm
 npm install yarn
