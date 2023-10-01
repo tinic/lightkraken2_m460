@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.27)
+cmake_minimum_required(VERSION 3.22)
 
 # M46x M467 M467SJHAN
 project(lightkraken2 C CXX ASM)
