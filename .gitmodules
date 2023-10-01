@@ -9,4 +9,4 @@
 	url = https://github.com/azure-rtos/netxduo.git
 [submodule "m460bsp"]
 	path = m460bsp
-	url = git@github.com:tinic/m460bsp.git
+	url = https://github.com/tinic/m460bsp.git
