@@ -12,6 +12,7 @@
 #include "uart.h"
 #include "gpio.h"
 #include "sys.h"
+#include "fs.h"
 
 #include "tx_api.h"
 
@@ -153,6 +154,11 @@ void thread_0_entry(ULONG thread_input) {
     LED_YELLOW = 1;
     LED_RED = 0;
     LED_GREEN = 0;
+
+    volatile int32_t d = 0;
+    for (size_t c = 0; c < sizeof(fs_data); c++) {
+        d += fs_data[c];
+    }
 
     while(1) {
 
