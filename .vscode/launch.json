@@ -14,7 +14,7 @@
                 "./nulink.cfg",
                 "./numicro_m4.cfg"
             ],
-            "openOCDLaunchCommands": ["adapter_khz 1000"],
+            "openOCDLaunchCommands": ["adapter speed 1000"],
             "preLaunchTask": "install",
             "openOCDPreConfigLaunchCommands": ["gdb_breakpoint_override hard"]
         }

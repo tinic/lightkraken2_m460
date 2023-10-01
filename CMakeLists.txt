@@ -13,17 +13,20 @@ set(THREADX_TOOLCHAIN gnu)
 add_compile_definitions(
     TX_MAX_PRIORITIES=32
     TX_DISABLE_PREEMPTION_THRESHOLD
-    TX_DISABLE_REDUNDANT_CLEARING
     TX_DISABLE_NOTIFY_CALLBACKS
+    TX_DISABLE_REDUNDANT_CLEARING
     TX_NOT_INTERRUPTABLE
     TX_TIMER_PROCESS_IN_ISR
     TX_REACTIVATE_INLINE
-    TX_DISABLE_STACK_FILLING
     TX_INLINE_THREAD_RESUME_SUSPEND
     __HXT=12000000UL
     __FPU_PRESENT=1U
-    NDEBUG 
-    ARM_MATH_CM4)
+    ARM_MATH_CM4
+    $<$<NOT:$<CONFIG:Release>>:TX_ENABLE_STACK_CHECKING>
+    $<$<CONFIG:Release>:TX_DISABLE_STACK_FILLING>
+    $<$<CONFIG:Release>:TX_DISABLE_ERROR_CHECKING>
+    $<$<CONFIG:Release>:NDEBUG>
+    )
 
 set(BSP_DIR ${PROJECT_SOURCE_DIR}/m460bsp)
 set(THREADX_DIR ${PROJECT_SOURCE_DIR}/threadx)
@@ -189,5 +192,5 @@ add_custom_command(TARGET ${PROJECT_NAME}.elf POST_BUILD
 
 message(${PROJECT_SOURCE_DIR})
 
-set(PROGRAM_CMD "./openocd -f ./nulink.cfg -f ./numicro_m4.cfg -c \"adapter_khz 1000\" -c \"program ${PROJECT_BINARY_DIR}/${PROJECT_NAME}.bin ${BASE_ADDRESS} verify reset exit\"")
+set(PROGRAM_CMD "./openocd -f ./nulink.cfg -f ./numicro_m4.cfg -c \"adapter speed 1000\" -c \"program ${PROJECT_BINARY_DIR}/${PROJECT_NAME}.bin ${BASE_ADDRESS} verify reset exit\"")
 install(CODE "execute_process(COMMAND ${PROGRAM_CMD} WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/openocd)")
