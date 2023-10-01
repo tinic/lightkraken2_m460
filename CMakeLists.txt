@@ -115,10 +115,14 @@ add_executable(${PROJECT_NAME}.elf
     ${BSP_DIR}/Library/Device/Nuvoton/m460/Source/system_m460.c
 )
 
+file(GLOB VUE3_FILES
+       ${PROJECT_SOURCE_DIR}/vue3/src/*.*)
+message(${VUE3_FILES})
 add_custom_command(
     OUTPUT ${PROJECT_BINARY_DIR}/fs.h
     COMMAND yarn build WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/vue3
-    COMMAND python3 ${PROJECT_SOURCE_DIR}/fs.py 128000 ${PROJECT_SOURCE_DIR}/vue3/dist/ ${PROJECT_BINARY_DIR}/fs.h ${PROJECT_BINARY_DIR}/fs.img)
+    COMMAND python3 ${PROJECT_SOURCE_DIR}/fs.py 128000 ${PROJECT_SOURCE_DIR}/vue3/dist/ ${PROJECT_BINARY_DIR}/fs.h ${PROJECT_BINARY_DIR}/fs.img
+    DEPENDS ${VUE3_FILES})
 target_sources(${PROJECT_NAME}.elf PRIVATE fs.h)
 
 include_directories(${BSP_DIR}/Library/Device/Nuvoton/m460/Include)
