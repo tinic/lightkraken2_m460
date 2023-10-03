@@ -15,6 +15,7 @@
 #include "fs.h"
  
 #include "tx_api.h"
+#include "nx_api.h"
 
 #define LED_INIT()  (PH->MODE = ((PH->MODE &(~(0x3ful << 4*2))) | (0x15ul << 4 *2)))
 #define LED_RED     PH4
@@ -155,11 +156,6 @@ void thread_0_entry(ULONG thread_input) {
     LED_RED = 0;
     LED_GREEN = 0;
 
-    volatile int32_t d = 0;
-    for (size_t c = 0; c < sizeof(fs_data); c++) {
-        d += fs_data[c];
-    }
-
     while(1) {
 
         LED_YELLOW = 0;
@@ -179,12 +175,20 @@ void thread_0_entry(ULONG thread_input) {
     }
 }
 
+static TX_THREAD thread_1 = { 0 } ;
+static TX_BYTE_POOL byte_pool_1 = { 0 };
+
+void thread_1_entry(ULONG thread_input) {
+}
+
 void tx_application_define(void *first_unused_memory) 
 {
     void *pointer = 0;
     tx_byte_pool_create(&byte_pool_0, "byte pool 0", first_unused_memory, 9120);
     tx_byte_allocate(&byte_pool_0, &pointer, 1024, TX_NO_WAIT);
     tx_thread_create(&thread_0, "thread 0", thread_0_entry, 0, pointer, 1024, 1, 1, TX_NO_TIME_SLICE, TX_AUTO_START);
+
+    
 }
 
 int main()

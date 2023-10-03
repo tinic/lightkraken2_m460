@@ -11,12 +11,19 @@
             "device": "M467HJHAN",
             "interface": "swd",
             "configFiles": [
-                "./nulink.cfg",
+                "./stlink.cfg",
                 "./numicro_m4.cfg"
             ],
-            "openOCDLaunchCommands": ["adapter speed 1000"],
+            "openOCDLaunchCommands": ["adapter speed 12000"],
             "preLaunchTask": "install",
-            "openOCDPreConfigLaunchCommands": ["gdb_breakpoint_override hard"]
+            "openOCDPreConfigLaunchCommands": ["gdb_breakpoint_override hard"],
+            "showDevDebugOutput": "raw",
+            "overrideLaunchCommands": [
+                "interpreter-exec console \"monitor reset halt\"",
+                //'target-download',
+                //'interpreter-exec console \"monitor reset halt\"',
+                "-enable-pretty-printing"
+            ],
         }
     ]
 }
