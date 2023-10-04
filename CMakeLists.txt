@@ -114,11 +114,10 @@ add_executable(${PROJECT_NAME}.elf
     ${PROJECT_SOURCE_DIR}/main.c
     ${PROJECT_SOURCE_DIR}/support/stubs.c
     ${PROJECT_SOURCE_DIR}/support/tx_initialize_low_level.c
-    ${PROJECT_SOURCE_DIR}/support/emac/m460_emac.c
-    ${PROJECT_SOURCE_DIR}/support/emac/m460_mii.c
     ${PROJECT_SOURCE_DIR}/support/emac/synopGMAC_Dev.c
     ${PROJECT_SOURCE_DIR}/support/emac/synopGMAC_network_interface.c
     ${PROJECT_SOURCE_DIR}/support/emac/synopGMAC_plat.c
+    ${PROJECT_SOURCE_DIR}/support/emac/nx_m460_eth_driver.c
     ${BSP_DIR}/Library/Device/Nuvoton/m460/Source/GCC/startup_M460.S
     ${BSP_DIR}/Library/Device/Nuvoton/m460/Source/system_m460.c
 )

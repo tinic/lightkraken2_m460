@@ -17,8 +17,6 @@
 #include "tx_api.h"
 #include "nx_api.h"
 
-#include "m460_emac.h"
-
 #define LED_INIT()  (PH->MODE = ((PH->MODE &(~(0x3ful << 4*2))) | (0x15ul << 4 *2)))
 #define LED_RED     PH4
 #define LED_YELLOW  PH5
@@ -138,8 +136,6 @@ void SYS_Lightkraken_Init() {
     /* Lock protected registers */
     SYS_LockReg();
 
-    static const uint8_t macAddr[] = { 0x7b, 0xbb, 0x7c, 0x7e, 0x0e, 0xd1 };
-    EMAC_Open(&macAddr);
 }
 
 static TX_THREAD thread_0 = { 0 } ;
