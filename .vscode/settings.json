@@ -7,6 +7,7 @@
     },
     "cmake.configureOnOpen": true,
     "files.associations": {
-        "nx_api.h": "c"
+        "nx_api.h": "c",
+        "nx_m460_eth_driver.h": "c"
     },
 }

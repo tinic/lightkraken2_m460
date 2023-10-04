@@ -38,7 +38,7 @@ extern   "C" {
 #ifdef NX_DRIVER_SOURCE
 
 /****** DRIVER SPECIFIC ****** Start of part/vendor specific include area.  Include any such files here!  */
-
+#include "synopGMAC_network_interface.h"
 /****** DRIVER SPECIFIC ****** End of part/vendor specific include file area!  */
 
 

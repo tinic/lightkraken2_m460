@@ -23,7 +23,6 @@
 
 /* Include driver specific include file.  */
 #include "NuMicro.h"
-#include "synopGMAC_network_interface.h"
 #include "nx_m460_eth_driver.h"
 #endif /* NX_M60_ETH_DRIVER_H */
 
