@@ -112,8 +112,13 @@ set(DUMP_FILE ${PROJECT_BINARY_DIR}/${PROJECT_NAME}.S)
 
 add_executable(${PROJECT_NAME}.elf 
     ${PROJECT_SOURCE_DIR}/main.c
-    ${PROJECT_SOURCE_DIR}/stubs.c
-    ${PROJECT_SOURCE_DIR}/tx_initialize_low_level.c
+    ${PROJECT_SOURCE_DIR}/support/stubs.c
+    ${PROJECT_SOURCE_DIR}/support/tx_initialize_low_level.c
+    ${PROJECT_SOURCE_DIR}/support/emac/m460_emac.c
+    ${PROJECT_SOURCE_DIR}/support/emac/m460_mii.c
+    ${PROJECT_SOURCE_DIR}/support/emac/synopGMAC_Dev.c
+    ${PROJECT_SOURCE_DIR}/support/emac/synopGMAC_network_interface.c
+    ${PROJECT_SOURCE_DIR}/support/emac/synopGMAC_plat.c
     ${BSP_DIR}/Library/Device/Nuvoton/m460/Source/GCC/startup_M460.S
     ${BSP_DIR}/Library/Device/Nuvoton/m460/Source/system_m460.c
 )
@@ -128,6 +133,8 @@ add_custom_command(
     DEPENDS ${VUE3_FILES})
 target_sources(${PROJECT_NAME}.elf PRIVATE fs.h)
 
+include_directories(${PROJECT_SOURCE_DIR}/support)
+include_directories(${PROJECT_SOURCE_DIR}/support/emac)
 include_directories(${BSP_DIR}/Library/Device/Nuvoton/m460/Include)
 include_directories(${BSP_DIR}/Library/CMSIS/Include)
 include_directories(${BSP_DIR}/Library/StdDriver/inc)

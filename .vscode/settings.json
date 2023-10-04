@@ -6,4 +6,7 @@
         "version.h.in": true,
     },
     "cmake.configureOnOpen": true,
+    "files.associations": {
+        "nx_api.h": "c"
+    },
 }
