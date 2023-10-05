@@ -35,7 +35,7 @@ set(THREADX_DIR ${PROJECT_SOURCE_DIR}/threadx)
 set(FILEX_DIR ${PROJECT_SOURCE_DIR}/filex)
 set(NETXDUO_DIR ${PROJECT_SOURCE_DIR}/netxduo)
 
-set(LD_SCRIPT ${BSP_DIR}/Library/Device/Nuvoton/m460/Source/GCC/gcc_arm.ld)
+set(LD_SCRIPT ${PROJECT_SOURCE_DIR}/support/gcc_arm_512k.ld)
 
 set(CC_FLAGS
     -flto=auto
@@ -132,7 +132,7 @@ message(${VUE3_FILES})
 add_custom_command(
     OUTPUT ${PROJECT_BINARY_DIR}/fs.h
     COMMAND yarn build WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/vue3
-    COMMAND python3 ${PROJECT_SOURCE_DIR}/fs.py 128000 ${PROJECT_SOURCE_DIR}/vue3/dist/ ${PROJECT_BINARY_DIR}/fs.h ${PROJECT_BINARY_DIR}/fs.img
+    COMMAND python3 ${PROJECT_SOURCE_DIR}/fs.py 131072 ${PROJECT_SOURCE_DIR}/vue3/dist/ ${PROJECT_BINARY_DIR}/fs.h ${PROJECT_BINARY_DIR}/fs.img
     DEPENDS ${VUE3_FILES})
 target_sources(${PROJECT_NAME}.elf PRIVATE fs.h)
 
