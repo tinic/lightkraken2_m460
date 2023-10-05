@@ -24,6 +24,7 @@
 /* Include driver specific include file.  */
 #include "NuMicro.h"
 #include "nx_m460_eth_driver.h"
+
 #endif /* NX_M60_ETH_DRIVER_H */
 
 /****** DRIVER SPECIFIC ****** End of part/vendor specific include file area!  */
@@ -42,7 +43,6 @@ static bool synopGMACdeviceInit = false;
 static DmaDesc tx_desc[TRANSMIT_DESC_SIZE] __attribute__((aligned(32))) = {0};
 static DmaDesc rx_desc[RECEIVE_DESC_SIZE] __attribute__((aligned(32))) = {0};
 static PKT_FRAME_T tx_buf[TRANSMIT_DESC_SIZE] __attribute__((aligned(32))) = {0};
-static PKT_FRAME_T rx_buf[RECEIVE_DESC_SIZE] __attribute__((aligned(32))) = {0};
 
 /****** DRIVER SPECIFIC ****** End of part/vendor specific data area!  */
 
@@ -1377,7 +1377,7 @@ static UINT  _nx_driver_hardware_initialize(NX_IP_DRIVER *driver_req_ptr)
   SET_EMAC0_RMII_RXERR_PA6();
   SET_EMAC0_PPS_PB6();
 
-  static uint8_t macaddr[] = { 0x7b, 0xbb, 0x7c, 0x7e, 0x0e, 0xd1 }; // FIXME!!
+  static uint8_t macaddr[] = { 0x2C, 0x77, 0xD4, 0xDA, 0xFE, 0x07 }; // FIXME!!
   /* Attach the device to MAC struct This will configure all the required base addresses
     such as Mac base, configuration base, phy base address(out of 32 possible phys) */
   synopGMAC_attach(&GMACdev, (EMAC_BASE + MACBASE), (EMAC_BASE + DMABASE), DEFAULT_PHY_BASE, macaddr);
@@ -1433,11 +1433,6 @@ static UINT  _nx_driver_hardware_initialize(NX_IP_DRIVER *driver_req_ptr)
   synopGMAC_enable_rx_chksum_offload(&GMACdev);    // Enable the offload engine in the receive path
   synopGMAC_rx_tcpip_chksum_drop_enable(&GMACdev); // This is default configuration, DMA drops the packets if error in encapsulated ethernet payload
 #endif
-
-  for(size_t i=0; i<RECEIVE_DESC_SIZE; i ++) {
-      memset(&rx_buf[i], 0, sizeof(PKT_FRAME_T));
-      synopGMAC_set_rx_qptr(&GMACdev, (u32)&rx_buf[i], PKT_FRAME_BUF_SIZE, 0);
-  }
 
   /* Enable interrupt */
   synopGMAC_clear_interrupt(&GMACdev);
@@ -1668,8 +1663,8 @@ static UINT _nx_driver_hardware_packet_send(NX_PACKET *packet_ptr)
 
   for (NX_PACKET *pktIdx = packet_ptr; pktIdx != NX_NULL; pktIdx = pktIdx -> nx_packet_next) {
 
-      volatile uint8_t *buf = pktIdx->nx_packet_prepend_ptr;
-      volatile size_t len = (pktIdx -> nx_packet_append_ptr - pktIdx->nx_packet_prepend_ptr);
+      uint8_t *buf = pktIdx->nx_packet_prepend_ptr;
+      size_t len = (pktIdx -> nx_packet_append_ptr - pktIdx->nx_packet_prepend_ptr);
 
       if (buf == 0 || len == 0) {
           continue;
@@ -1682,9 +1677,9 @@ static UINT _nx_driver_hardware_packet_send(NX_PACKET *packet_ptr)
       int offload = 0;
 #ifdef NX_ENABLE_INTERFACE_CAPABILITY
       if (packet_ptr->nx_packet_interface_capability_flag & (NX_INTERFACE_CAPABILITY_TCP_TX_CHECKSUM |
-                                                            NX_INTERFACE_CAPABILITY_UDP_TX_CHECKSUM |
-                                                            NX_INTERFACE_CAPABILITY_ICMPV4_TX_CHECKSUM |
-                                                            NX_INTERFACE_CAPABILITY_ICMPV6_TX_CHECKSUM)) {
+                                                             NX_INTERFACE_CAPABILITY_UDP_TX_CHECKSUM |
+                                                             NX_INTERFACE_CAPABILITY_ICMPV4_TX_CHECKSUM |
+                                                             NX_INTERFACE_CAPABILITY_ICMPV6_TX_CHECKSUM)) {
           offload = 1; // FIXME!!
       }
       else if (packet_ptr->nx_packet_interface_capability_flag & NX_INTERFACE_CAPABILITY_IPV4_TX_CHECKSUM) {
@@ -1694,21 +1689,29 @@ static UINT _nx_driver_hardware_packet_send(NX_PACKET *packet_ptr)
       offload = 0;
 #endif /* NX_ENABLE_INTERFACE_CAPABILITY */
  
+      TX_INTERRUPT_SAVE_AREA
+      TX_DISABLE
+
       u32 index = GMACdev.TxNext;
       memcpy(&tx_buf[index].au8Buf[0], buf, len);
 
-      hexDump(0, buf, len);
-
       if (synopGMAC_xmit_frames(&GMACdev, &tx_buf[index].au8Buf[0], len, offload, 0) < 0 ) {
+          TX_RESTORE
           return(NX_DRIVER_ERROR);
       }
+
+      TX_RESTORE
+
+      //hexDump(0, buf, len);
   }
+
 
   /* Remove the Ethernet header.  */
   NX_DRIVER_ETHERNET_HEADER_REMOVE(packet_ptr);
 
   /* Free the packet.  */
   nx_packet_transmit_release(packet_ptr);
+
 
   return(NX_SUCCESS);
 }

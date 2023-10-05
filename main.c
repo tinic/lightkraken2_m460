@@ -202,6 +202,39 @@ static void dhcp_state_change(NX_DHCP *dhcp_ptr, UCHAR new_state)
     NX_PARAMETER_NOT_USED(dhcp_ptr);
     NX_PARAMETER_NOT_USED(new_state);
 
+    switch(new_state) {
+        case NX_DHCP_STATE_NOT_STARTED:
+        printf("dhcp_state_change NX_DHCP_STATE_NOT_STARTED\n");
+        break;
+        case NX_DHCP_STATE_BOOT:
+        printf("dhcp_state_change NX_DHCP_STATE_BOOT\n");
+        break;
+        case NX_DHCP_STATE_INIT:
+        printf("dhcp_state_change NX_DHCP_STATE_INIT\n");
+        break;
+        case NX_DHCP_STATE_SELECTING:
+        printf("dhcp_state_change NX_DHCP_STATE_SELECTING\n");
+        break;
+        case NX_DHCP_STATE_REQUESTING:
+        printf("dhcp_state_change NX_DHCP_STATE_REQUESTING\n");
+        break;
+        case NX_DHCP_STATE_BOUND:
+        printf("dhcp_state_change NX_DHCP_STATE_BOUND\n");
+        break;
+        case NX_DHCP_STATE_RENEWING:
+        printf("dhcp_state_change NX_DHCP_STATE_RENEWING\n");
+        break;
+        case NX_DHCP_STATE_REBINDING:
+        printf("dhcp_state_change NX_DHCP_STATE_REBINDING\n");
+        break;
+        case NX_DHCP_STATE_FORCERENEW:
+        printf("dhcp_state_change NX_DHCP_STATE_FORCERENEW\n");
+        break;
+        case NX_DHCP_STATE_ADDRESS_PROBING:
+        printf("dhcp_state_change NX_DHCP_STATE_ADDRESS_PROBING\n");
+        break;
+    }
+
     /* Increment state changes counter.  */
     state_changes++;
 
