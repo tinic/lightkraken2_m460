@@ -35,6 +35,11 @@
 #include  "synopGMAC_Dev.h"
 //#define CACHE_ON
 
+#ifdef   __cplusplus
+/* Yes, C++ compiler is present.  Use standard C.  */
+extern   "C" {
+#endif
+
 /** Tx/Rx buffer structure */
 typedef struct
 {
@@ -49,5 +54,10 @@ void synop_handle_transmit_over(synopGMACdevice *gmacdev);
 void synopGMAC_set_mode(synopGMACdevice *gmacdev, int mode);
 void synopGMAC_powerup_mac(synopGMACdevice *gmacdev);
 void synopGMAC_powerdown_mac(synopGMACdevice *gmacdev);
+
+#ifdef   __cplusplus
+/* Yes, C++ compiler is present.  Use standard C.  */
+}  // extern   "C" {
+#endif
 
 #endif /* End of file */

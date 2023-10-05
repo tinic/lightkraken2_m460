@@ -20,6 +20,7 @@ add_compile_definitions(
     TX_TIMER_PROCESS_IN_ISR
     TX_REACTIVATE_INLINE
     TX_INLINE_THREAD_RESUME_SUSPEND
+    FX_ENABLE_EXFAT
     __HXT=12000000UL
     __FPU_PRESENT=1U
     ARM_MATH_CM4
@@ -68,6 +69,7 @@ set(CC_FLAGS
     -fallow-store-data-races)
 
 set(CXX_FLAGS 
+    ${CC_FLAGS}
     -Weffc++
     -Wsign-conversion
     -Wshadow 
@@ -113,6 +115,7 @@ set(DUMP_FILE ${PROJECT_BINARY_DIR}/${PROJECT_NAME}.S)
 
 add_executable(${PROJECT_NAME}.elf 
     ${PROJECT_SOURCE_DIR}/main.c
+    ${PROJECT_SOURCE_DIR}/tx_app.cpp
     ${PROJECT_SOURCE_DIR}/support/stubs.c
     ${PROJECT_SOURCE_DIR}/support/tx_initialize_low_level.c
     ${PROJECT_SOURCE_DIR}/support/emac/synopGMAC_Dev.c

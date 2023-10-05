@@ -38,6 +38,11 @@
 
 #include "synopGMAC_plat.h"
 
+#ifdef   __cplusplus
+/* Yes, C++ compiler is present.  Use standard C.  */
+extern   "C" {
+#endif
+
 /* SynopGMAC can support up to 32 phys */
 
 enum GMACPhyBase
@@ -51,8 +56,8 @@ enum GMACPhyBase
 #define MACBASE 0x0000                  // The Mac Base address offset is 0x0000
 #define DMABASE 0x1000                  // Dma base address starts with an offset 0x1000
 
-#define TRANSMIT_DESC_SIZE           8  // Tx Descriptors needed in the Descriptor pool/queue
-#define RECEIVE_DESC_SIZE           16  // Rx Descriptors needed in the Descriptor pool/queue
+#define TRANSMIT_DESC_SIZE          16  // Tx Descriptors needed in the Descriptor pool/queue
+#define RECEIVE_DESC_SIZE           32  // Rx Descriptors needed in the Descriptor pool/queue
 
 #define ETHERNET_HEADER             14  // 6 byte Dest addr, 6 byte Src addr, 2 byte length/type
 #define ETHERNET_CRC                 4  // Ethernet CRC
@@ -1710,5 +1715,10 @@ void synopGMAC_disable_under_size_pkt(synopGMACdevice *gmacdev);
 
 void synopGMAC_enable_crc_err_pkt(synopGMACdevice *gmacdev);
 void synopGMAC_disable_crc_err_pkt(synopGMACdevice *gmacdev);
+
+#ifdef   __cplusplus
+/* Yes, C++ compiler is present.  Use standard C.  */
+}  // extern   "C" {
+#endif
 
 #endif /* End of file */

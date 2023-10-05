@@ -38,7 +38,13 @@
 #define SYNOP_GMAC_PLAT_H 1
 
 #include <stdio.h>
-#include "NuMicro.h"
+#include <stdbool.h>
+#include <stdint.h>
+
+#ifdef   __cplusplus
+/* Yes, C++ compiler is present.  Use standard C.  */
+extern   "C" {
+#endif
 
 typedef unsigned char   u8;         ///< Define 8-bit unsigned data type
 typedef unsigned short  u16;        ///< Define 16-bit unsigned data type
@@ -46,12 +52,6 @@ typedef unsigned int    u32;        ///< Define 32-bit unsigned data type
 typedef signed   int    s32;        ///< Define 32-bit signed data type
 
 typedef u32 *dma_addr_t;
-
-typedef int bool;
-enum synopGMAC_boolean {
-    false = 0,
-    true = 1
-};
 
 #define DEFAULT_DELAY_VARIABLE  10
 #define DEFAULT_LOOP_VARIABLE   10000
@@ -71,5 +71,10 @@ void synopGMACWriteReg(u32 RegBase, u32 RegOffset, u32 RegData);
 void synopGMACSetBits(u32 RegBase, u32 RegOffset, u32 BitPos);
 void synopGMACClearBits(u32 RegBase, u32 RegOffset, u32 BitPos);
 bool synopGMACCheckBits(u32 RegBase, u32 RegOffset, u32 BitPos);
+
+#ifdef   __cplusplus
+/* Yes, C++ compiler is present.  Use standard C.  */
+}  // extern   "C" {
+#endif
 
 #endif

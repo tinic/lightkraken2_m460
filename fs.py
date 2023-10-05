@@ -36,7 +36,7 @@ def bytesio_to_c_header(bytes_io_obj, var_name="data", line_length=120):
         "#ifndef _FS_H_",
         "#define _FS_H_",
         "",
-        "const unsigned char {}[{}] = {{".format(var_name, len(bytes_io_obj.getvalue()))
+        "unsigned char {}[{}] = {{".format(var_name, len(bytes_io_obj.getvalue()))
     ]
     header_content.extend(lines)
     header_content.append("};")
