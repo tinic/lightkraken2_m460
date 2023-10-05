@@ -2307,38 +2307,40 @@ void EMAC0_IRQHandler(void) {
 
 static NX_PACKET *nx_net_buffer_alloc(uint32_t n)
 {
-  UINT status = 0;
-  NX_PACKET * packet_ptr = 0;
+    UINT status = 0;
+    NX_PACKET * packet_ptr = 0;
 
-  if (!nx_driver_information.nx_driver_information_packet_pool_ptr)
-    return NULL;
+    if (!nx_driver_information.nx_driver_information_packet_pool_ptr) {
+        return NULL;
+    }
 
-  status = nx_packet_allocate(nx_driver_information.nx_driver_information_packet_pool_ptr, &packet_ptr, NX_RECEIVE_PACKET, NX_NO_WAIT);
-  if (status != NX_SUCCESS)
-    return NULL;
+    status = nx_packet_allocate(nx_driver_information.nx_driver_information_packet_pool_ptr, &packet_ptr, NX_RECEIVE_PACKET, NX_NO_WAIT);
+    if (status != NX_SUCCESS) {
+        return NULL;
+    }
 
-  packet_ptr->nx_packet_next = NULL;
-  packet_ptr->nx_packet_prepend_ptr += 2;
-  packet_ptr->nx_packet_append_ptr = packet_ptr->nx_packet_prepend_ptr + n;
-  packet_ptr->nx_packet_length = n;
+    packet_ptr->nx_packet_next = NULL;
+    packet_ptr->nx_packet_prepend_ptr += 2;
+    packet_ptr->nx_packet_append_ptr = packet_ptr->nx_packet_prepend_ptr + n;
+    packet_ptr->nx_packet_length = n;
 
-  return packet_ptr;
+    return packet_ptr;
 }
 
 static bool _nx_driver_hardware_packet_received()
 {
-  uint32_t len = 0;
-  PKT_FRAME_T* psPktFrame = 0;
-  if ((len = synop_handle_received_data(&GMACdev, &psPktFrame)) > 0 ) {	
-    synopGMAC_set_rx_qptr(&GMACdev, (u32)psPktFrame, PKT_FRAME_BUF_SIZE, 0);
-    NX_PACKET *packet_ptr = nx_net_buffer_alloc(len);
-    if (packet_ptr) {
-        memcpy(packet_ptr->nx_packet_prepend_ptr, psPktFrame->au8Buf, len);
-        _nx_driver_transfer_to_netx(nx_driver_information.nx_driver_information_ip_ptr, packet_ptr);
+    uint32_t len = 0;
+    PKT_FRAME_T* psPktFrame = 0;
+    if ((len = synop_handle_received_data(&GMACdev, &psPktFrame)) > 0 ) {	
+        synopGMAC_set_rx_qptr(&GMACdev, (u32)psPktFrame, PKT_FRAME_BUF_SIZE, 0);
+        NX_PACKET *packet_ptr = nx_net_buffer_alloc(len);
+        if (packet_ptr) {
+            memcpy(packet_ptr->nx_packet_prepend_ptr, psPktFrame->au8Buf, len);
+            _nx_driver_transfer_to_netx(nx_driver_information.nx_driver_information_ip_ptr, packet_ptr);
+        }
+        return true;
     }
-    return true;
-  }
-  return false;
+    return false;
 }
 
 #if 0
