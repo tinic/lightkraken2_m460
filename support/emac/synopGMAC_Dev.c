@@ -97,7 +97,7 @@ s32 synopGMAC_read_phy_reg(u32 RegBase, u32 PhyBase, u32 RegOffset, u16 *data)
         * data = (u16)(synopGMACReadReg(RegBase, GmacGmiiData) & 0xFFFF);
     else
     {
-        printf("Error::: PHY not responding Busy bit didnot get cleared !!!!!!\n");
+//        printf("Error::: PHY not responding Busy bit didnot get cleared !!!!!!\n");
         return -ESYNOPGMACPHYERR;
     }
     return 0;
@@ -139,7 +139,7 @@ s32 synopGMAC_write_phy_reg(u32 RegBase, u32 PhyBase, u32 RegOffset, u16 data)
     }
     else
     {
-        printf("Error::: PHY not responding Busy bit didnot get cleared !!!!!!\n");
+//        printf("Error::: PHY not responding Busy bit didnot get cleared !!!!!!\n");
         return -ESYNOPGMACPHYERR;
     }
 }
@@ -176,7 +176,7 @@ s32 synopGMAC_read_version(synopGMACdevice *gmacdev)
     u32 data = 0;
     data = synopGMACReadReg(gmacdev->MacBase, GmacVersion);
     gmacdev->Version = data;
-    printf("The data read from %08x is %08x\n", (gmacdev->MacBase + GmacVersion), data);
+//    printf("The data read from %08x is %08x\n", (gmacdev->MacBase + GmacVersion), data);
     return 0;
 }
 
@@ -198,7 +198,7 @@ s32 synopGMAC_reset(synopGMACdevice *gmacdev)
     }
     while (data & 1);
 
-    printf("DATA after Reset = %08x\n", data);
+//    printf("DATA after Reset = %08x\n", data);
 
     return 0;
 }
@@ -508,7 +508,7 @@ void synopGMAC_pad_crc_strip_disable(synopGMACdevice *gmacdev)
     status = synopGMACReadReg(gmacdev->MacBase, GmacConfig);
     if ((status & GmacPadCrcStrip))
     {
-        printf("strips status : %u\n", status & GmacPadCrcStrip);
+//        printf("strips status : %u\n", status & GmacPadCrcStrip);
     }
     return;
 }
@@ -1267,7 +1267,7 @@ s32 synopGMAC_init_tx_rx_desc_queue(synopGMACdevice *gmacdev)
     {
         synopGMAC_tx_desc_init_ring(gmacdev->TxDesc + i, i == gmacdev->TxDescCount - 1);
     }
-    printf("At line %d\n", __LINE__);
+//    printf("At line %d\n", __LINE__);
     for (i = 0; i < gmacdev -> RxDescCount; i++)
     {
         synopGMAC_rx_desc_init_ring(gmacdev->RxDesc + i, i == gmacdev->RxDescCount - 1);
@@ -1628,8 +1628,8 @@ s32 synopGMAC_set_tx_qptr(synopGMACdevice *gmacdev, u32 Buffer1, u32 Length1, u3
     gmacdev->TxNext = synopGMAC_is_last_tx_desc(gmacdev, txdesc) ? 0 : txnext + 1;
     gmacdev->TxNextDesc = synopGMAC_is_last_tx_desc(gmacdev, txdesc) ? gmacdev->TxDesc : (txdesc + 1);
 
-    //printf("(set)%02d %08x %08x %08x %08x %08x %08x %08x\n", txnext, (u32)txdesc, txdesc->status, txdesc->length, txdesc->buffer1, txdesc->buffer2, txdesc->data1, txdesc->data2);
-    //printf("(set)%02d %08x %08x %08x %08x %08x\n", txnext, (u32)txdesc, txdesc->status, txdesc->length, txdesc->buffer1, txdesc->buffer2);
+//    printf("(set)%02d %08x %08x %08x %08x %08x %08x %08x\n", txnext, (u32)txdesc, txdesc->status, txdesc->length, txdesc->buffer1, txdesc->buffer2, txdesc->data1, txdesc->data2);
+//    printf("(set)%02d %08x %08x %08x %08x %08x\n", txnext, (u32)txdesc, txdesc->status, txdesc->length, txdesc->buffer1, txdesc->buffer2);
     return txnext;
 }
 
@@ -1777,7 +1777,7 @@ u32 synopGMAC_get_interrupt_type(synopGMACdevice *gmacdev)
     u32 interrupts = 0;
     data = synopGMACReadReg(gmacdev->DmaBase, DmaStatus);
     synopGMACWriteReg(gmacdev->DmaBase, DmaStatus, data); //This is the appropriate location to clear the interrupts
-    //printf("DMA status reg is  %08x\n", data);
+//    printf("DMA status reg is  %08x\n", data);
     if (data & DmaIntErrorMask)  interrupts     |= synopGMACDmaError;
     if (data & DmaIntRxNormMask) interrupts     |= synopGMACDmaRxNormal;
     if (data & DmaIntRxAbnMask)  interrupts     |= synopGMACDmaRxAbnormal;
@@ -2741,7 +2741,7 @@ s32 synopGMAC_TS_addend_update(synopGMACdevice *gmacdev, u32 addend_value)
         synopGMACSetBits(gmacdev->MacBase, GmacTSControl, GmacTSADDREG);
     else
     {
-        printf("Error::: The TSADDREG bit is not getting cleared !!!!!!\n");
+//        printf("Error::: The TSADDREG bit is not getting cleared !!!!!!\n");
         return -ESYNOPGMACPHYERR;
     }
     return 0;
@@ -2774,7 +2774,7 @@ s32 synopGMAC_TS_timestamp_update(synopGMACdevice *gmacdev, u32 high_value, u32 
         synopGMACSetBits(gmacdev->MacBase, GmacTSControl, GmacTSUPDT);
     else
     {
-        printf("Error::: The TSADDREG bit is not getting cleared !!!!!!\n");
+//        printf("Error::: The TSADDREG bit is not getting cleared !!!!!!\n");
         return -ESYNOPGMACPHYERR;
     }
     return 0;
@@ -2806,7 +2806,7 @@ s32 synopGMAC_TS_timestamp_init(synopGMACdevice *gmacdev, u32 high_value, u32 lo
         synopGMACSetBits(gmacdev->MacBase, GmacTSControl, GmacTSINT);
     else
     {
-        printf("Error::: The TSADDREG bit is not getting cleared !!!!!!\n");
+//        printf("Error::: The TSADDREG bit is not getting cleared !!!!!!\n");
         return -ESYNOPGMACPHYERR;
     }
     return 0;

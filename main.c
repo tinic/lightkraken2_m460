@@ -22,7 +22,7 @@
 #include "synopGMAC_network_interface.h"
 
 #define NX_PACKET_SIZE PKT_FRAME_BUF_SIZE
-#define NX_PACKET_POOL_SIZE PKT_FRAME_BUF_SIZE * 8
+#define NX_PACKET_POOL_SIZE PKT_FRAME_BUF_SIZE * TRANSMIT_DESC_SIZE
 
 #define LED_INIT() (PH->MODE = ((PH->MODE & (~(0x3ful << 4 * 2))) | (0x15ul << 4 * 2)))
 #define LED_RED PH4
@@ -34,7 +34,6 @@ void UART0_Init(void);
 
 void SYS_Lightkraken_Init()
 {
-
     // Enable ICE
     SYS->GPF_MFP0 &= ~(SYS_GPF_MFP0_PF1MFP_Msk | SYS_GPF_MFP0_PF0MFP_Msk);
     SYS->GPF_MFP0 |= (SYS_GPF_MFP0_PF1MFP_ICE_CLK | SYS_GPF_MFP0_PF0MFP_ICE_DAT);
@@ -154,19 +153,12 @@ void thread_0_entry(ULONG thread_input)
     /* Enable GPIO PH to control LED */
     CLK->AHBCLK0 |= CLK_AHBCLK0_GPHCKEN_Msk;
 
-//    printf("\n");
-//    printf("+------------------------------------------------------------------+\n");
-//    printf("|              Simple Blinky Demo                                  |\n");
-//    printf("+------------------------------------------------------------------+\n");
-
     LED_INIT();
     LED_YELLOW = 1;
     LED_RED = 0;
     LED_GREEN = 0;
 
-    while (1)
-    {
-
+    while (1) {
         LED_YELLOW = 0;
         LED_RED = 1;
         LED_GREEN = 1;
@@ -179,8 +171,6 @@ void thread_0_entry(ULONG thread_input)
         LED_RED = 1;
         LED_GREEN = 0;
         tx_thread_sleep(20);
-
-//        printf("Iter %d\n", i++);
     }
 }
 
@@ -252,7 +242,6 @@ void thread_1_entry(ULONG thread_input)
 
     NX_PARAMETER_NOT_USED(thread_input);
 
-    printf("nx_ip_status_check\n");
     /* Wait for the link to come up.  */
     do {
         /* Get the link status.  */
@@ -261,7 +250,6 @@ void thread_1_entry(ULONG thread_input)
     } while (status != NX_SUCCESS);
 
     /* Modified the mtu size to avoid fragmenting the DHCP packet since the default mtu size is 128 in _nx_ram_network_driver.  */
-    printf("nx_ip_interface_mtu_set\n");
     status = nx_ip_interface_mtu_set(&client_ip, NX_DHCP_INTERFACE_INDEX, 1500);
 
     /* Check for MTU set errors.  */
@@ -269,7 +257,6 @@ void thread_1_entry(ULONG thread_input)
         return;
 
     /* Create the DHCP instance.  */
-    printf("nx_dhcp_create\n");
     status = nx_dhcp_create(&dhcp_client, &client_ip, "DHCP-CLIENT");
     if (status)
         return;
@@ -282,13 +269,11 @@ void thread_1_entry(ULONG thread_input)
 #endif
 
     /* Register state change variable.  */
-    printf("nx_dhcp_state_change_notify\n");
     status = nx_dhcp_state_change_notify(&dhcp_client, dhcp_state_change);
     if (status)
         error_counter++;
 
     /* Start the DHCP Client.  */
-    printf("nx_dhcp_start\n");
     nx_dhcp_start(&dhcp_client);
     while (run_dhcp_client)
     {
@@ -296,7 +281,6 @@ void thread_1_entry(ULONG thread_input)
         do
         {
             /* Check for address resolution.  */
-            printf("nx_ip_status_check\n");
             status = nx_ip_status_check(&client_ip, NX_IP_ADDRESS_RESOLVED, (ULONG *)&actual_status, NX_IP_PERIODIC_RATE);
 
             /* Check status.  */
@@ -313,12 +297,16 @@ void thread_1_entry(ULONG thread_input)
         while (ping)
         {
             /* Send pings to another host on the network...  */
-            //printf("nx_icmp_ping\n");
-            status = nx_icmp_ping(&client_ip, IP_ADDRESS(192, 168, 0, 1), (CHAR *)message, length, &my_packet, NX_IP_PERIODIC_RATE);
-            if (status)
+            printf("nx_icmp_ping %d %d\n", error_counter, client_thread_counter);
+
+            my_packet = NULL;
+            status = nx_icmp_ping(&client_ip, IP_ADDRESS(192, 168, 1, 160), (CHAR *)message, length, &my_packet, NX_IP_PERIODIC_RATE * 20);
+            if (status) {
                 error_counter++;
-            else
+            }
+            if (my_packet) {
                 nx_packet_release(my_packet);
+            }
 
             /* Increment counter.  */
             client_thread_counter++;
@@ -364,16 +352,13 @@ void tx_application_define(void *first_unused_memory)
     tx_thread_create(&thread_0, "thread 0", thread_0_entry, 0, pointer, 1024, 1, 1, TX_NO_TIME_SLICE, TX_AUTO_START);
     pointer = pointer + 1024;
 
-    printf("tx_thread_create\n");
     tx_thread_create(&thread_1, "thread 1", thread_1_entry, 0, pointer, 4096, 1, 1, TX_NO_TIME_SLICE, TX_AUTO_START);
     pointer = pointer + 4096;
 
     /* Initialize the NetX system.  */
-    printf("nx_system_initialize\n");
     nx_system_initialize();
 
     /* Create the client packet pool.  */
-    printf("nx_packet_pool_create\n");
     status = nx_packet_pool_create(&client_pool, "NetX Main Packet Pool", MAX_ETHERNET_PAYLOAD, pointer, NX_PACKET_POOL_SIZE);
     pointer = pointer + NX_PACKET_POOL_SIZE;
 
@@ -382,7 +367,6 @@ void tx_application_define(void *first_unused_memory)
         return;
 
     /* Create an IP instance for the DHCP Client.  */
-    printf("nx_ip_create\n");
     status = nx_ip_create(&client_ip, "DHCP Client", IP_ADDRESS(0, 0, 0, 0), 0xFFFFFF00UL, &client_pool, nx_m460_eth_driver, pointer, 2048, 1);
     pointer = pointer + 2048;
 
@@ -391,7 +375,6 @@ void tx_application_define(void *first_unused_memory)
     if (status)
         return;
 
-    printf("nx_arp_enable\n");
     /* Enable ARP and supply ARP cache memory for DHCP Client IP.  */
     status = nx_arp_enable(&client_ip, (void *)pointer, 1024);
     pointer = pointer + 1024;
@@ -401,7 +384,6 @@ void tx_application_define(void *first_unused_memory)
         return;
 
     /* Enable UDP traffic.  */
-    printf("nx_udp_enable\n");
     status = nx_udp_enable(&client_ip);
 
     /* Check for UDP enable errors.  */
@@ -409,7 +391,6 @@ void tx_application_define(void *first_unused_memory)
         return;
 
     /* Enable ICMP.  */
-    printf("nx_icmp_enable\n");
     status = nx_icmp_enable(&client_ip);
 
     /* Check for errors.  */

@@ -42,10 +42,10 @@ void synopGMAC_powerup_mac(synopGMACdevice *gmacdev)
 {
     gmacdev->GMAC_Power_down = 0;    // Let ISR know that MAC is out of power down now
     if (synopGMAC_is_magic_packet_received(gmacdev)) {
-        printf("GMAC wokeup due to Magic Pkt Received\n");
+//        printf("GMAC wokeup due to Magic Pkt Received\n");
     }
     if (synopGMAC_is_wakeup_frame_received(gmacdev)) {
-        printf("GMAC wokeup due to Wakeup Frame Received\n");
+//        printf("GMAC wokeup due to Wakeup Frame Received\n");
     }
     
     //Disable the assertion of PMT interrupt
@@ -62,7 +62,7 @@ void synopGMAC_powerup_mac(synopGMACdevice *gmacdev)
 
 void synopGMAC_powerdown_mac(synopGMACdevice *gmacdev)
 {
-    printf("Put the GMAC to power down mode..\n");
+//    printf("Put the GMAC to power down mode..\n");
 
     // Disable the Dma engines in tx path
     gmacdev->GMAC_Power_down = 1;    // Let ISR know that Mac is going to be in the power down mode
@@ -122,7 +122,7 @@ s32 synopGMAC_setup_tx_desc_queue(synopGMACdevice *gmacdev, DmaDesc *first_desc,
 {
     u32 i;
 
-    printf("Total size of memory required for Tx Descriptors in Ring Mode = 0x%08x\n", ((sizeof(DmaDesc) * no_of_desc)));
+//    printf("Total size of memory required for Tx Descriptors in Ring Mode = 0x%08x\n", ((sizeof(DmaDesc) * no_of_desc)));
 
     gmacdev->TxDescCount = no_of_desc;
 
@@ -187,7 +187,7 @@ s32 synopGMAC_setup_rx_desc_queue(synopGMACdevice *gmacdev, DmaDesc *first_desc,
 {
     u32 i;
 
-    printf("total size of memory required for Rx Descriptors in Ring Mode = 0x%08x\n", ((sizeof(DmaDesc) * no_of_desc)));
+//    printf("Total size of memory required for Rx Descriptors in Ring Mode = 0x%08x\n", ((sizeof(DmaDesc) * no_of_desc)));
 
     gmacdev->RxDescCount = no_of_desc;
 #ifdef CACHE_ON
@@ -200,7 +200,7 @@ s32 synopGMAC_setup_rx_desc_queue(synopGMACdevice *gmacdev, DmaDesc *first_desc,
     for (i = 0; i < gmacdev -> RxDescCount; i++)
     {
         synopGMAC_rx_desc_init_ring((DmaDesc *)gmacdev->RxDesc + i, i == gmacdev->RxDescCount - 1);
-        printf("%02d %08x \n", i, (unsigned int)(gmacdev->RxDesc + i));
+//        printf("(setup)%02d %08x \n", i, (unsigned int)(gmacdev->RxDesc + i));
     }
 
     gmacdev->RxNext = 0;

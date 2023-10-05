@@ -43,6 +43,7 @@ static bool synopGMACdeviceInit = false;
 static DmaDesc tx_desc[TRANSMIT_DESC_SIZE] __attribute__((aligned(32))) = {0};
 static DmaDesc rx_desc[RECEIVE_DESC_SIZE] __attribute__((aligned(32))) = {0};
 static PKT_FRAME_T tx_buf[TRANSMIT_DESC_SIZE] __attribute__((aligned(32))) = {0};
+static PKT_FRAME_T rx_buf[RECEIVE_DESC_SIZE] __attribute__((aligned(32))) = {0};
 
 /****** DRIVER SPECIFIC ****** End of part/vendor specific data area!  */
 
@@ -61,9 +62,7 @@ static VOID         _nx_driver_get_status(NX_IP_DRIVER *driver_req_ptr);
 static VOID         _nx_driver_capability_get(NX_IP_DRIVER *driver_req_ptr);
 static VOID         _nx_driver_capability_set(NX_IP_DRIVER *driver_req_ptr);
 #endif /* NX_ENABLE_INTERFACE_CAPABILITY */
-
 static VOID         _nx_driver_deferred_processing(NX_IP_DRIVER *driver_req_ptr);
-
 static VOID         _nx_driver_transfer_to_netx(NX_IP *ip_ptr, NX_PACKET *packet_ptr);
 
 
@@ -86,6 +85,8 @@ static int32_t      _nx_mii_mdio_read(synopGMACdevice *gmacdev, uint16_t reg, ui
 static int32_t      _nx_mii_mdio_write(synopGMACdevice *gmacdev, uint16_t reg, uint16_t val);
 static int32_t      _nx_mii_link_ok(synopGMACdevice *gmacdev);
 static int32_t      _nx_mii_check_phy_init(synopGMACdevice *gmacdev);
+
+//static void         _nx_hex_dump(char *desc, void *addr, int len);
 
 /**************************************************************************/
 /*                                                                        */
@@ -1154,7 +1155,6 @@ static VOID  _nx_driver_capability_set(NX_IP_DRIVER *driver_req_ptr)
 /**************************************************************************/
 static VOID  _nx_driver_deferred_processing(NX_IP_DRIVER *driver_req_ptr)
 {
-  printf("_nx_driver_deferred_processing!\n");
   TX_INTERRUPT_SAVE_AREA
 
   ULONG       deferred_events;
@@ -1413,11 +1413,11 @@ static UINT  _nx_driver_hardware_initialize(NX_IP_DRIVER *driver_req_ptr)
   /* Set up the tx and rx descriptor queue/ring */
   synopGMAC_setup_tx_desc_queue(&GMACdev, &tx_desc[0], TRANSMIT_DESC_SIZE, RINGMODE);
   synopGMAC_init_tx_desc_base(&GMACdev);	// Program the transmit descriptor base address in to DmaTxBase addr
-  printf("DmaTxBaseAddr = %08x\n", synopGMACReadReg(GMACdev.DmaBase, DmaTxBaseAddr));
+//  printf("DmaTxBaseAddr = %08x\n", synopGMACReadReg(GMACdev.DmaBase, DmaTxBaseAddr));
 
   synopGMAC_setup_rx_desc_queue(&GMACdev, &rx_desc[0], RECEIVE_DESC_SIZE, RINGMODE);
   synopGMAC_init_rx_desc_base(&GMACdev); // Program the transmit descriptor base address in to DmaTxBase addr
-  printf("DmaTxBaseAddr = %08x\n", synopGMACReadReg(GMACdev.DmaBase, DmaRxBaseAddr));
+//  printf("DmaTxBaseAddr = %08x\n", synopGMACReadReg(GMACdev.DmaBase, DmaRxBaseAddr));
 
   synopGMAC_dma_bus_mode_init(&GMACdev, (DmaBurstLength32 | DmaDescriptorSkip0 | DmaDescriptor8Words));
   synopGMAC_dma_control_init(&GMACdev, (DmaStoreAndForward | DmaTxSecondFrame| DmaRxThreshCtrl128));
@@ -1433,6 +1433,11 @@ static UINT  _nx_driver_hardware_initialize(NX_IP_DRIVER *driver_req_ptr)
   synopGMAC_enable_rx_chksum_offload(&GMACdev);    // Enable the offload engine in the receive path
   synopGMAC_rx_tcpip_chksum_drop_enable(&GMACdev); // This is default configuration, DMA drops the packets if error in encapsulated ethernet payload
 #endif
+
+  for(size_t i=0; i<RECEIVE_DESC_SIZE; i ++) {
+      memset(&rx_buf[i], 0, sizeof(PKT_FRAME_T));
+      synopGMAC_set_rx_qptr(&GMACdev, (u32)&rx_buf[i], PKT_FRAME_BUF_SIZE, 0);
+  }
 
   /* Enable interrupt */
   synopGMAC_clear_interrupt(&GMACdev);
@@ -1501,7 +1506,6 @@ static UINT  _nx_driver_hardware_initialize(NX_IP_DRIVER *driver_req_ptr)
 /**************************************************************************/
 static UINT  _nx_driver_hardware_enable(NX_IP_DRIVER *driver_req_ptr)
 {
-    printf("_nx_driver_hardware_enable\n");
     NVIC_EnableIRQ(EMAC0_TXRX_IRQn);
 
     /* Return success!  */
@@ -1554,7 +1558,6 @@ static UINT  _nx_driver_hardware_enable(NX_IP_DRIVER *driver_req_ptr)
 /**************************************************************************/
 static UINT  _nx_driver_hardware_disable(NX_IP_DRIVER *driver_req_ptr)
 {
-    printf("_nx_driver_hardware_disable\n");
     NVIC_DisableIRQ(EMAC0_TXRX_IRQn);
 
     /* Return success!  */
@@ -1603,63 +1606,15 @@ static UINT  _nx_driver_hardware_disable(NX_IP_DRIVER *driver_req_ptr)
 /*                                                                        */
 /**************************************************************************/
 
-static void hexDump(char *desc, void *addr, int len)
-{
-  int i;
-  unsigned char buff[17];
-  unsigned char *pc = (unsigned char*)addr;
-
-  // Output description if given.
-  if (desc != NULL)
-    printf ("%s:\n", desc);
-
-  // Process every byte in the data.
-  for (i = 0; i < len; i++) {
-    // Multiple of 16 means new line (with line offset).
-    if ((i % 16) == 0) {
-      // Just don't print ASCII for the zeroth line.
-      if (i != 0)
-        printf ("  %s\n", buff);
-
-      // Output the offset.
-      printf ("  %04x ", i);
-    }
-
-    // Now the hex code for the specific character.
-    printf (" %02x", pc[i]);
-
-    // And store a printable ASCII character for later.
-    if ((pc[i] < 0x20) || (pc[i] > 0x7e))
-      buff[i % 16] = '.';
-    else
-      buff[i % 16] = pc[i];
-    buff[(i % 16) + 1] = '\0';
-  }
-
-  // Pad out last line if not exactly 16 characters.
-  while ((i % 16) != 0) {
-    printf ("   ");
-    i++;
-  }
-
-  // And print the final ASCII bit.
-  printf ("  %s\n", buff);
-}
-
-
 static UINT _nx_driver_hardware_packet_send(NX_PACKET *packet_ptr)
 {
     if (!synopGMACdeviceInit) {
-        printf("_nx_driver_hardware_packet_send fail!\n");
         return NX_DRIVER_ERROR;
     }
 
     if (synopGMAC_is_desc_owned_by_dma(GMACdev.TxNextDesc)) {
-        printf("_nx_driver_hardware_packet_send fail!\n");
         return(NX_DRIVER_ERROR);
     }
-
-  //printf("_nx_driver_hardware_packet_send\n");
 
   for (NX_PACKET *pktIdx = packet_ptr; pktIdx != NX_NULL; pktIdx = pktIdx -> nx_packet_next) {
 
@@ -1696,13 +1651,13 @@ static UINT _nx_driver_hardware_packet_send(NX_PACKET *packet_ptr)
       memcpy(&tx_buf[index].au8Buf[0], buf, len);
 
       if (synopGMAC_xmit_frames(&GMACdev, &tx_buf[index].au8Buf[0], len, offload, 0) < 0 ) {
+
           TX_RESTORE
+
           return(NX_DRIVER_ERROR);
       }
 
       TX_RESTORE
-
-      //hexDump(0, buf, len);
   }
 
 
@@ -1759,7 +1714,6 @@ static UINT _nx_driver_hardware_packet_send(NX_PACKET *packet_ptr)
 static UINT  _nx_driver_hardware_multicast_join(NX_IP_DRIVER *driver_req_ptr)
 {
     if (!synopGMACdeviceInit) {
-        printf("_nx_driver_hardware_multicast_join fail!\n");
         return NX_DRIVER_ERROR;
     }
 
@@ -1817,7 +1771,6 @@ static UINT  _nx_driver_hardware_multicast_join(NX_IP_DRIVER *driver_req_ptr)
 static UINT  _nx_driver_hardware_multicast_leave(NX_IP_DRIVER *driver_req_ptr)
 {
     if (!synopGMACdeviceInit) {
-        printf("_nx_driver_hardware_multicast_leave fail!\n");
         return NX_DRIVER_ERROR;
     }
 
@@ -1878,7 +1831,6 @@ static UINT  _nx_driver_hardware_get_status(NX_IP_DRIVER *driver_req_ptr)
     INT PHYLinkState;
 
     if (!synopGMACdeviceInit) {
-        printf("_nx_driver_hardware_get_status fail!\n");
         return NX_DRIVER_ERROR;
     }
 
@@ -2242,11 +2194,11 @@ void EMAC0_IRQHandler(void) {
         status = synopGMACReadReg(GMACdev.MacBase, GmacTSStatus);
         if (!(status & (1 << 1)))
         {
-            printf("TS alarm flag not set??\n");
+//            printf("TS alarm flag not set??\n");
         }
         else
         {
-            printf("TS alarm!!!!!!!!!!!!!!!!\n");
+//            printf("TS alarm!!!!!!!!!!!!!!!!\n");
         }
     }
   
@@ -2254,21 +2206,19 @@ void EMAC0_IRQHandler(void) {
 
     dma_status_reg = synopGMACReadReg(GMACdev.DmaBase, DmaStatus);
     if (dma_status_reg == 0) {
-        printf("dma_status ==0 \n");
+//        printf("dma_status ==0 \n");
         return;
     }
 
     if (dma_status_reg & GmacPmtIntr) {
-        printf("%s:: Interrupt due to PMT module\n", __func__);
+//        printf("%s:: Interrupt due to PMT module\n", __func__);
         synopGMAC_powerup_mac(&GMACdev);
     }
 
     if (dma_status_reg & GmacLineIntfIntr) {
-        printf("%s:: Interrupt due to GMAC LINE module\n", __func__);
+//        printf("%s:: Interrupt due to GMAC LINE module\n", __func__);
         if (synopGMACReadReg(GMACdev.MacBase, GmacInterruptStatus) & GmacRgmiiIntSts) {
-            printf("%s: GMAC RGMII status is %08x\n",
-                  __func__,
-                  synopGMACReadReg(GMACdev.MacBase, GmacRgmiiCtrlSts));
+//            printf("%s: GMAC RGMII status is %08x\n", __func__, synopGMACReadReg(GMACdev.MacBase, GmacRgmiiCtrlSts));
             synopGMACReadReg(GMACdev.MacBase, GmacRgmiiCtrlSts);
         }
     }
@@ -2345,14 +2295,14 @@ void EMAC0_IRQHandler(void) {
         }
     }
 
-    synopGMAC_enable_interrupt(&GMACdev, u32GmacDmaIE);
-
     /* Enable the interrrupt before returning from ISR */
     if (interrupt & synopGMACDmaRxNormal) {
       if (_nx_driver_hardware_packet_received()) {
         synopGMAC_enable_interrupt(&GMACdev, DmaIntEnable);
       }
     }
+
+    synopGMAC_enable_interrupt(&GMACdev, u32GmacDmaIE);
 }
 
 static NX_PACKET *nx_net_buffer_alloc(uint32_t n)
@@ -2390,3 +2340,47 @@ static bool _nx_driver_hardware_packet_received()
   }
   return false;
 }
+
+#if 0
+static void _nx_hex_dump(char *desc, void *addr, int len) {
+  int i;
+  unsigned char buff[17];
+  unsigned char *pc = (unsigned char*)addr;
+
+  // Output description if given.
+  if (desc != NULL)
+    printf ("%s:\n", desc);
+
+  // Process every byte in the data.
+  for (i = 0; i < len; i++) {
+    // Multiple of 16 means new line (with line offset).
+    if ((i % 16) == 0) {
+      // Just don't print ASCII for the zeroth line.
+      if (i != 0)
+        printf ("  %s\n", buff);
+
+      // Output the offset.
+      printf ("  %04x ", i);
+    }
+
+    // Now the hex code for the specific character.
+    printf (" %02x", pc[i]);
+
+    // And store a printable ASCII character for later.
+    if ((pc[i] < 0x20) || (pc[i] > 0x7e))
+      buff[i % 16] = '.';
+    else
+      buff[i % 16] = pc[i];
+    buff[(i % 16) + 1] = '\0';
+  }
+
+  // Pad out last line if not exactly 16 characters.
+  while ((i % 16) != 0) {
+    printf ("   ");
+    i++;
+  }
+
+  // And print the final ASCII bit.
+  printf ("  %s\n", buff);
+}
+#endif  // #if 0

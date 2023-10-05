@@ -1,4 +1,6 @@
 #include "NuMicro.h"
+#include "tx_api.h"
+
 #include <ctype.h>
 
 // Threadx variables
@@ -34,10 +36,11 @@ void _tx_initialize_low_level(void) {
   // ARMv7-M Architecture Reference Manual: Page C1-737
   DWT->CTRL |= (1 << 0);
 
-  // Configure SysTick for 100Hz clock, or 16384 cycles if no reference
-  const size_t SYSTICK_CYCLES = ((SystemCoreClock / 100) - 1);
-  SysTick->LOAD = SYSTICK_CYCLES;
-  SysTick->CTRL = 0x7;
+  // Use timer instead of SysTick for threadx
+  TIMER_Open(TIMER0, TIMER_PERIODIC_MODE, TX_TIMER_TICKS_PER_SECOND);
+  TIMER_EnableInt(TIMER0);
+  NVIC_EnableIRQ(TMR0_IRQn);
+  TIMER_Start(TIMER0);
 
   // Configure handler priorities
   // TODO, Find a better way to do this
@@ -57,61 +60,20 @@ void _tx_initialize_low_level(void) {
   SCB->SHP[11] = 0x40;
 }
 
-// Handlers
-
-// Generic Interrupt handler template
-
-void __tx_IntHandler(void) {
-#ifdef TX_ENABLE_EXECUTION_CHANGE_NOTIFY
-  _tx_execution_isr_enter();
-#endif
-#ifdef TX_ENABLE_EXECUTION_CHANGE_NOTIFY
-  _tx_execution_isr_exit();
-#endif
-}
-
-// System Tick timer interrupt handler
+// Timer interrupt handler
 
 extern void _tx_timer_interrupt();
-static inline void SystickHandlerHelper(void) {
+
+void TMR0_IRQHandler(void) {
+    if(TIMER_GetIntFlag(TIMER0) == 1) {
+        TIMER_ClearIntFlag(TIMER0);
 #ifdef TX_ENABLE_EXECUTION_CHANGE_NOTIFY
-  _tx_execution_isr_enter();
+        _tx_execution_isr_enter();
 #endif
-
-  // See tx_timer_interrupt.S in threadx/ports/cortex_m4/gnu/src
-  _tx_timer_interrupt();
-
+        _tx_timer_interrupt();
 #ifdef TX_ENABLE_EXECUTION_CHANGE_NOTIFY
-  _tx_execution_isr_exit();
+        _tx_execution_isr_exit();
 #endif
+    }
 }
 
-void __tx_SysTickHandler(void) { SystickHandlerHelper(); }
-void SysTick_Handler(void) { SystickHandlerHelper(); }
-
-// * Are the below functions used anywhere?
-
-void __tx_BadHandler(void) {
-  while (1) {
-  }
-}
-
-void __tx_HardfaultHandler(void) {
-  while (1) {
-  }
-}
-
-void __tx_SVCallHandler(void) {
-  while (1) {
-  }
-}
-
-void __tx_NMIHandler(void) {
-  while (1) {
-  }
-}
-
-void __tx_DBGHandler(void) {
-  while (1) {
-  }
-}
