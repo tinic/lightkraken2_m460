@@ -138,15 +138,15 @@ s32 synopGMAC_setup_tx_desc_queue(synopGMACdevice *gmacdev, DmaDesc *first_desc,
     {
         synopGMAC_tx_desc_init_ring((DmaDesc *)gmacdev->TxDesc + i, i == gmacdev->TxDescCount - 1);
 
-        printf("%02d %08x \n", i, (unsigned int)(gmacdev->TxDesc + i));
-        printf("status: %08x\n", (unsigned int)((gmacdev->TxDesc + i))->status);
-        printf("length: %08x\n", (unsigned int)((gmacdev->TxDesc + i)->length));
-        printf("buffer1: %08x\n", (unsigned int)((gmacdev->TxDesc + i)->buffer1));
-        printf("buffer2: %08x\n", (unsigned int)((gmacdev->TxDesc + i)->buffer2));
-        printf("extstatus: %08x\n", (unsigned int)((gmacdev->TxDesc + i)->extstatus));
-        printf("reserved1: %08x\n", (unsigned int)((gmacdev->TxDesc + i)->reserved1));
-        printf("timestamplow: %08x\n", (unsigned int)((gmacdev->TxDesc + i)->timestamplow));
-        printf("timestamphigh: %08x\n", (unsigned int)((gmacdev->TxDesc + i)->timestamphigh));
+//        printf("%02d %08x \n", i, (unsigned int)(gmacdev->TxDesc + i));
+//        printf("status: %08x\n", (unsigned int)((gmacdev->TxDesc + i))->status);
+//        printf("length: %08x\n", (unsigned int)((gmacdev->TxDesc + i)->length));
+//        printf("buffer1: %08x\n", (unsigned int)((gmacdev->TxDesc + i)->buffer1));
+//        printf("buffer2: %08x\n", (unsigned int)((gmacdev->TxDesc + i)->buffer2));
+//        printf("extstatus: %08x\n", (unsigned int)((gmacdev->TxDesc + i)->extstatus));
+//        printf("reserved1: %08x\n", (unsigned int)((gmacdev->TxDesc + i)->reserved1));
+//        printf("timestamplow: %08x\n", (unsigned int)((gmacdev->TxDesc + i)->timestamplow));
+//        printf("timestamphigh: %08x\n", (unsigned int)((gmacdev->TxDesc + i)->timestamphigh));
 //        printf("data1: %08x\n", (unsigned int)((gmacdev->TxDesc + i)->data1));
 //        printf("data2: %08x\n", (unsigned int)((gmacdev->TxDesc + i)->data2));
     }
@@ -343,16 +343,16 @@ void synop_handle_transmit_over(synopGMACdevice *gmacdev)
 
         if (desc_index >= 0 /*&& data1 != 0*/)
         {
-            printf("Finished Transmit at Tx Descriptor %d for buffer = %08x whose status is %08x \n", desc_index, dma_addr1, status);
+            //printf("Finished Transmit at Tx Descriptor %d for buffer = %08x whose status is %08x \n", desc_index, dma_addr1, status);
 
             if (synopGMAC_is_tx_ipv4header_checksum_error(gmacdev, status))
             {
-                printf("Harware Failed to Insert IPV4 Header Checksum\n");
+                //printf("Harware Failed to Insert IPV4 Header Checksum\n");
                 gmacdev->synopGMACNetStats.tx_ip_header_errors++;
             }
             if (synopGMAC_is_tx_payload_checksum_error(gmacdev, status))
             {
-                printf("Harware Failed to Insert Payload Checksum\n");
+                //printf("Harware Failed to Insert Payload Checksum\n");
                 gmacdev->synopGMACNetStats.tx_ip_payload_errors++;
             }
 
@@ -373,7 +373,7 @@ void synop_handle_transmit_over(synopGMACdevice *gmacdev)
             }
             else
             {
-                printf("Error in Status %08x\n", status);
+                //printf("Error in Status %08x\n", status);
                 gmacdev->synopGMACNetStats.tx_errors++;
                 gmacdev->synopGMACNetStats.tx_aborted_errors += synopGMAC_is_tx_aborted(status);
                 gmacdev->synopGMACNetStats.tx_carrier_errors += synopGMAC_is_tx_carrier_error(status);
@@ -417,9 +417,9 @@ s32 synop_handle_received_data(synopGMACdevice *gmacdev, PKT_FRAME_T **ppsPktFra
     {
         //synopGMAC_TS_read_timestamp_higher_val(gmacdev, &time_stamp_higher);
         //printf("S:%08x ES:%08x DA1:%08x d1:%08x TSH:%08x TSL:%08x TSHW:%08x \n",status,ext_status,dma_addr1, data1,time_stamp_high,time_stamp_low,time_stamp_higher);
-        printf("S:%08x ES:%08x DA1:%08x d1:%08x TSH:%08x TSL:%08x\n", status, ext_status, dma_addr1, data1, time_stamp_high, time_stamp_low);
+        //printf("S:%08x ES:%08x DA1:%08x d1:%08x TSH:%08x TSL:%08x\n", status, ext_status, dma_addr1, data1, time_stamp_high, time_stamp_low);
 
-        printf("Received Data at Rx Descriptor %d for skb 0x%08x whose status is %08x\n", desc_index, data1, status);
+        //printf("Received Data at Rx Descriptor %d for skb 0x%08x whose status is %08x\n", desc_index, data1, status);
 
         if (synopGMAC_is_rx_desc_valid(status))
         {
@@ -438,24 +438,24 @@ s32 synop_handle_received_data(synopGMACdevice *gmacdev, PKT_FRAME_T **ppsPktFra
                 When CHECKSUM_UNNECESSARY is set kernel bypasses the checksum computation.
             */
 
-            printf("Checksum Offloading will be done now\n");
+            //printf("Checksum Offloading will be done now\n");
 
             if (synopGMAC_is_ext_status(gmacdev, status))  // extended status present indicates that the RDES4 need to be probed
             {
-                printf("Extended Status present\n");
+                //printf("Extended Status present\n");
                 if (synopGMAC_ES_is_IP_header_error(gmacdev, ext_status))      // IP header (IPV4) checksum error
                 {
                     //Linux Kernel doesnot care for ipv4 header checksum. So we will simply proceed by printing a warning ....
-                    printf("(EXTSTS)Error in IP header error\n");
+                    //printf("(EXTSTS)Error in IP header error\n");
                     gmacdev->synopGMACNetStats.rx_ip_header_errors++;
                 }
                 if (synopGMAC_ES_is_rx_checksum_bypassed(gmacdev, ext_status))  // Hardware engine bypassed the checksum computation/checking
                 {
-                    printf("(EXTSTS)Hardware bypassed checksum computation\n");
+                    //printf("(EXTSTS)Hardware bypassed checksum computation\n");
                 }
                 if (synopGMAC_ES_is_IP_payload_error(gmacdev, ext_status))      // IP payload checksum is in error (UDP/TCP/ICMP checksum error)
                 {
-                    printf("(EXTSTS) Error in EP payload\n");
+                    //printf("(EXTSTS) Error in EP payload\n");
                     gmacdev->synopGMACNetStats.rx_ip_payload_errors++;
                 }
             }
@@ -463,35 +463,35 @@ s32 synop_handle_received_data(synopGMACdevice *gmacdev, PKT_FRAME_T **ppsPktFra
             {
                 if (synopGMAC_is_rx_checksum_error(gmacdev, status) == RxNoChkError)
                 {
-                    printf("Ip header and TCP/UDP payload checksum Bypassed <Chk Status = 4>  \n");
+                    //printf("Ip header and TCP/UDP payload checksum Bypassed <Chk Status = 4>  \n");
                 }
                 if (synopGMAC_is_rx_checksum_error(gmacdev, status) == RxIpHdrChkError)
                 {
                     //Linux Kernel doesnot care for ipv4 header checksum. So we will simply proceed by printing a warning ....
-                    printf(" Error in 16bit IPV4 Header Checksum <Chk Status = 6>  \n");
+                    //printf(" Error in 16bit IPV4 Header Checksum <Chk Status = 6>  \n");
                     gmacdev->synopGMACNetStats.rx_ip_header_errors++;
                 }
                 if (synopGMAC_is_rx_checksum_error(gmacdev, status) == RxLenLT600)
                 {
-                    printf("IEEE 802.3 type frame with Length field Lesss than 0x0600 <Chk Status = 0> \n");
+                    //printf("IEEE 802.3 type frame with Length field Lesss than 0x0600 <Chk Status = 0> \n");
                 }
                 if (synopGMAC_is_rx_checksum_error(gmacdev, status) == RxIpHdrPayLoadChkBypass)
                 {
-                    printf("Ip header and TCP/UDP payload checksum Bypassed <Chk Status = 1>\n");
+                    //printf("Ip header and TCP/UDP payload checksum Bypassed <Chk Status = 1>\n");
                 }
                 if (synopGMAC_is_rx_checksum_error(gmacdev, status) == RxChkBypass)
                 {
-                    printf("Ip header and TCP/UDP payload checksum Bypassed <Chk Status = 3>  \n");
+                    //printf("Ip header and TCP/UDP payload checksum Bypassed <Chk Status = 3>  \n");
                 }
                 if (synopGMAC_is_rx_checksum_error(gmacdev, status) == RxPayLoadChkError)
                 {
-                    printf(" TCP/UDP payload checksum Error <Chk Status = 5>  \n");
+                    //printf(" TCP/UDP payload checksum Error <Chk Status = 5>  \n");
                     gmacdev->synopGMACNetStats.rx_ip_payload_errors++;
                 }
                 if (synopGMAC_is_rx_checksum_error(gmacdev, status) == RxIpHdrPayLoadChkError)
                 {
                     //Linux Kernel doesnot care for ipv4 header checksum. So we will simply proceed by printing a warning ....
-                    printf(" Both IP header and Payload Checksum Error <Chk Status = 7>  \n");
+                    //printf(" Both IP header and Payload Checksum Error <Chk Status = 7>  \n");
                     gmacdev->synopGMACNetStats.rx_ip_header_errors++;
                     gmacdev->synopGMACNetStats.rx_ip_payload_errors++;
                 }

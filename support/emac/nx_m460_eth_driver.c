@@ -38,8 +38,11 @@ static ULONG header_size;
 /****** DRIVER SPECIFIC ****** Start of part/vendor specific data area.  Include hardware-specific data here!  */
 
 static synopGMACdevice GMACdev = {0};
+static bool synopGMACdeviceInit = false;
 static DmaDesc tx_desc[TRANSMIT_DESC_SIZE] __attribute__((aligned(32))) = {0};
 static DmaDesc rx_desc[RECEIVE_DESC_SIZE] __attribute__((aligned(32))) = {0};
+static PKT_FRAME_T tx_buf[TRANSMIT_DESC_SIZE] __attribute__((aligned(32))) = {0};
+static PKT_FRAME_T rx_buf[RECEIVE_DESC_SIZE] __attribute__((aligned(32))) = {0};
 
 /****** DRIVER SPECIFIC ****** End of part/vendor specific data area!  */
 
@@ -74,7 +77,7 @@ static UINT         _nx_driver_hardware_packet_send(NX_PACKET *packet_ptr);
 static UINT         _nx_driver_hardware_multicast_join(NX_IP_DRIVER *driver_req_ptr);
 static UINT         _nx_driver_hardware_multicast_leave(NX_IP_DRIVER *driver_req_ptr);
 static UINT         _nx_driver_hardware_get_status(NX_IP_DRIVER *driver_req_ptr);
-static VOID         _nx_driver_hardware_packet_received(bool interrupt);
+static bool         _nx_driver_hardware_packet_received();
 #ifdef NX_ENABLE_INTERFACE_CAPABILITY
 static UINT         _nx_driver_hardware_capability_set(NX_IP_DRIVER *driver_req_ptr);
 #endif /* NX_ENABLE_INTERFACE_CAPABILITY */
@@ -1151,6 +1154,7 @@ static VOID  _nx_driver_capability_set(NX_IP_DRIVER *driver_req_ptr)
 /**************************************************************************/
 static VOID  _nx_driver_deferred_processing(NX_IP_DRIVER *driver_req_ptr)
 {
+  printf("_nx_driver_deferred_processing!\n");
   TX_INTERRUPT_SAVE_AREA
 
   ULONG       deferred_events;
@@ -1169,7 +1173,7 @@ static VOID  _nx_driver_deferred_processing(NX_IP_DRIVER *driver_req_ptr)
   if(deferred_events & NX_DRIVER_DEFERRED_PACKET_RECEIVED)
   {
     /* Process received packet(s).  */
-    _nx_driver_hardware_packet_received(false);
+    _nx_driver_hardware_packet_received();
   }
 
   /* Mark request as successful.  */
@@ -1227,7 +1231,6 @@ static VOID _nx_driver_transfer_to_netx(NX_IP *ip_ptr, NX_PACKET *packet_ptr)
 {
 
   USHORT    packet_type;
-
 
   /* Set the interface for the incoming packet.  */
   packet_ptr -> nx_packet_ip_interface = nx_driver_information.nx_driver_information_interface;
@@ -1334,7 +1337,7 @@ static VOID _nx_driver_transfer_to_netx(NX_IP *ip_ptr, NX_PACKET *packet_ptr)
 static UINT  _nx_driver_hardware_initialize(NX_IP_DRIVER *driver_req_ptr)
 {
   /* Default to successful return.  */
-  driver_req_ptr -> nx_ip_driver_status =  NX_SUCCESS;
+  driver_req_ptr -> nx_ip_driver_status = NX_SUCCESS;
 
   /* Setup indices.  */
   nx_driver_information.nx_driver_information_receive_current_index = 0;
@@ -1381,10 +1384,10 @@ static UINT  _nx_driver_hardware_initialize(NX_IP_DRIVER *driver_req_ptr)
 
   synopGMAC_reset(&GMACdev);
 
-  memcpy((void*)&GMACdev.mac_addr[0], (void*)&macaddr[0], 6);
-
   /* Lets read the version of ip in to device structure */
   synopGMAC_read_version(&GMACdev);
+
+  memcpy((void*)&GMACdev.mac_addr[0], (void*)&macaddr[0], 6);
 
   /* Check for Phy initialization */
   if(SystemCoreClock >= 250000000)
@@ -1431,16 +1434,9 @@ static UINT  _nx_driver_hardware_initialize(NX_IP_DRIVER *driver_req_ptr)
   synopGMAC_rx_tcpip_chksum_drop_enable(&GMACdev); // This is default configuration, DMA drops the packets if error in encapsulated ethernet payload
 #endif
 
-  for(size_t i = 0; i < RECEIVE_DESC_SIZE; i++) {
-      NX_PACKET *packet_ptr = 0;
-      if (nx_packet_allocate(nx_driver_information.nx_driver_information_packet_pool_ptr, &packet_ptr, NX_RECEIVE_PACKET, NX_NO_WAIT) == NX_SUCCESS) {
-
-        /* Adjust the packet.  */ // WHY???
-        packet_ptr->nx_packet_prepend_ptr += 2;
-        synopGMAC_set_rx_qptr(&GMACdev, (uint32_t)packet_ptr->nx_packet_prepend_ptr, PKT_FRAME_BUF_SIZE, 0);
-
-        nx_driver_information.nx_driver_information_receive_packets[i] = packet_ptr;
-      }
+  for(size_t i=0; i<RECEIVE_DESC_SIZE; i ++) {
+      memset(&rx_buf[i], 0, sizeof(PKT_FRAME_T));
+      synopGMAC_set_rx_qptr(&GMACdev, (u32)&rx_buf[i], PKT_FRAME_BUF_SIZE, 0);
   }
 
   /* Enable interrupt */
@@ -1461,6 +1457,8 @@ static UINT  _nx_driver_hardware_initialize(NX_IP_DRIVER *driver_req_ptr)
 
   /* Clear the number of buffers in use counter.  */
   nx_driver_information.nx_driver_information_multicast_count = 0;
+
+  synopGMACdeviceInit = true;
 
   /* Return success!  */
   return(NX_SUCCESS);
@@ -1508,9 +1506,11 @@ static UINT  _nx_driver_hardware_initialize(NX_IP_DRIVER *driver_req_ptr)
 /**************************************************************************/
 static UINT  _nx_driver_hardware_enable(NX_IP_DRIVER *driver_req_ptr)
 {
-  NVIC_EnableIRQ(EMAC0_TXRX_IRQn);
-  /* Return success!  */
-  return(NX_SUCCESS);
+    printf("_nx_driver_hardware_enable\n");
+    NVIC_EnableIRQ(EMAC0_TXRX_IRQn);
+
+    /* Return success!  */
+    return(NX_SUCCESS);
 }
 
 
@@ -1559,9 +1559,11 @@ static UINT  _nx_driver_hardware_enable(NX_IP_DRIVER *driver_req_ptr)
 /**************************************************************************/
 static UINT  _nx_driver_hardware_disable(NX_IP_DRIVER *driver_req_ptr)
 {
-  NVIC_DisableIRQ(EMAC0_TXRX_IRQn);
-  /* Return success!  */
-  return(NX_SUCCESS);
+    printf("_nx_driver_hardware_disable\n");
+    NVIC_DisableIRQ(EMAC0_TXRX_IRQn);
+
+    /* Return success!  */
+    return(NX_SUCCESS);
 }
 
 
@@ -1606,48 +1608,100 @@ static UINT  _nx_driver_hardware_disable(NX_IP_DRIVER *driver_req_ptr)
 /*                                                                        */
 /**************************************************************************/
 
+static void hexDump(char *desc, void *addr, int len)
+{
+  int i;
+  unsigned char buff[17];
+  unsigned char *pc = (unsigned char*)addr;
+
+  // Output description if given.
+  if (desc != NULL)
+    printf ("%s:\n", desc);
+
+  // Process every byte in the data.
+  for (i = 0; i < len; i++) {
+    // Multiple of 16 means new line (with line offset).
+    if ((i % 16) == 0) {
+      // Just don't print ASCII for the zeroth line.
+      if (i != 0)
+        printf ("  %s\n", buff);
+
+      // Output the offset.
+      printf ("  %04x ", i);
+    }
+
+    // Now the hex code for the specific character.
+    printf (" %02x", pc[i]);
+
+    // And store a printable ASCII character for later.
+    if ((pc[i] < 0x20) || (pc[i] > 0x7e))
+      buff[i % 16] = '.';
+    else
+      buff[i % 16] = pc[i];
+    buff[(i % 16) + 1] = '\0';
+  }
+
+  // Pad out last line if not exactly 16 characters.
+  while ((i % 16) != 0) {
+    printf ("   ");
+    i++;
+  }
+
+  // And print the final ASCII bit.
+  printf ("  %s\n", buff);
+}
+
+
 static UINT _nx_driver_hardware_packet_send(NX_PACKET *packet_ptr)
 {
-  if (synopGMAC_is_desc_owned_by_dma(GMACdev.TxNextDesc)) {
-    return(NX_DRIVER_ERROR);
-  }
+    if (!synopGMACdeviceInit) {
+        printf("_nx_driver_hardware_packet_send fail!\n");
+        return NX_DRIVER_ERROR;
+    }
+
+    if (synopGMAC_is_desc_owned_by_dma(GMACdev.TxNextDesc)) {
+        printf("_nx_driver_hardware_packet_send fail!\n");
+        return(NX_DRIVER_ERROR);
+    }
+
+  //printf("_nx_driver_hardware_packet_send\n");
 
   for (NX_PACKET *pktIdx = packet_ptr; pktIdx != NX_NULL; pktIdx = pktIdx -> nx_packet_next) {
 
-    uint8_t *buf = pktIdx->nx_packet_prepend_ptr;
-    size_t len = (pktIdx -> nx_packet_append_ptr - pktIdx->nx_packet_prepend_ptr);
+      volatile uint8_t *buf = pktIdx->nx_packet_prepend_ptr;
+      volatile size_t len = (pktIdx -> nx_packet_append_ptr - pktIdx->nx_packet_prepend_ptr);
 
-    if (buf == 0 || len == 0) {
-      continue;
-    }
+      if (buf == 0 || len == 0) {
+          continue;
+      }
 
 #if defined (__DCACHE_PRESENT) && (__DCACHE_PRESENT == 1U)
-    SCB_CleanDCache_by_Addr((uint32_t*)(pktIdx->nx_packet_data_start), pktIdx->nx_packet_data_end - pktIdx->nx_packet_data_start);
+      SCB_CleanDCache_by_Addr((uint32_t*)(pktIdx->nx_packet_data_start), pktIdx->nx_packet_data_end - pktIdx->nx_packet_data_start);
 #endif  // #if defined (__DCACHE_PRESENT) && (__DCACHE_PRESENT == 1U)
 
-    int offload = 0;
+      int offload = 0;
 #ifdef NX_ENABLE_INTERFACE_CAPABILITY
-    if (packet_ptr->nx_packet_interface_capability_flag & (NX_INTERFACE_CAPABILITY_TCP_TX_CHECKSUM |
-                                                           NX_INTERFACE_CAPABILITY_UDP_TX_CHECKSUM |
-                                                           NX_INTERFACE_CAPABILITY_ICMPV4_TX_CHECKSUM |
-                                                           NX_INTERFACE_CAPABILITY_ICMPV6_TX_CHECKSUM)) {
-      offload = 1; // FIXME!!
-    }
-    else if (packet_ptr->nx_packet_interface_capability_flag & NX_INTERFACE_CAPABILITY_IPV4_TX_CHECKSUM) {
-      offload = 1; // FIXME!!
-    }
+      if (packet_ptr->nx_packet_interface_capability_flag & (NX_INTERFACE_CAPABILITY_TCP_TX_CHECKSUM |
+                                                            NX_INTERFACE_CAPABILITY_UDP_TX_CHECKSUM |
+                                                            NX_INTERFACE_CAPABILITY_ICMPV4_TX_CHECKSUM |
+                                                            NX_INTERFACE_CAPABILITY_ICMPV6_TX_CHECKSUM)) {
+          offload = 1; // FIXME!!
+      }
+      else if (packet_ptr->nx_packet_interface_capability_flag & NX_INTERFACE_CAPABILITY_IPV4_TX_CHECKSUM) {
+          offload = 1; // FIXME!!
+      }
 #else
-    offload = 0;
+      offload = 0;
 #endif /* NX_ENABLE_INTERFACE_CAPABILITY */
+ 
+      u32 index = GMACdev.TxNext;
+      memcpy(&tx_buf[index].au8Buf[0], buf, len);
 
-#if 0 // FIXME!!!
-//    u32 index = GMACdev.TxNext;
-//    return &tx_buf[index].au8Buf[0];
+      hexDump(0, buf, len);
 
-    if (synopGMAC_xmit_frames(&GMACdev, buf, len, offload, 0) < 0 ) {
-      return(NX_DRIVER_ERROR);
-    }
-#endif  // #if 0 // FIXME!!!
+      if (synopGMAC_xmit_frames(&GMACdev, &tx_buf[index].au8Buf[0], len, offload, 0) < 0 ) {
+          return(NX_DRIVER_ERROR);
+      }
   }
 
   /* Remove the Ethernet header.  */
@@ -1701,14 +1755,19 @@ static UINT _nx_driver_hardware_packet_send(NX_PACKET *packet_ptr)
 /**************************************************************************/
 static UINT  _nx_driver_hardware_multicast_join(NX_IP_DRIVER *driver_req_ptr)
 {
-  /* Increase the multicast count.  */
-  nx_driver_information.nx_driver_information_multicast_count++;
+    if (!synopGMACdeviceInit) {
+        printf("_nx_driver_hardware_multicast_join fail!\n");
+        return NX_DRIVER_ERROR;
+    }
 
-  /* Enable multicast frame reception.  */
-  synopGMAC_multicast_enable(&GMACdev);
+    /* Increase the multicast count.  */
+    nx_driver_information.nx_driver_information_multicast_count++;
 
-  /* Return success.  */
-  return(NX_SUCCESS);
+    /* Enable multicast frame reception.  */
+    synopGMAC_multicast_enable(&GMACdev);
+
+    /* Return success.  */
+    return(NX_SUCCESS);
 }
 
 
@@ -1754,17 +1813,21 @@ static UINT  _nx_driver_hardware_multicast_join(NX_IP_DRIVER *driver_req_ptr)
 /**************************************************************************/
 static UINT  _nx_driver_hardware_multicast_leave(NX_IP_DRIVER *driver_req_ptr)
 {
+    if (!synopGMACdeviceInit) {
+        printf("_nx_driver_hardware_multicast_leave fail!\n");
+        return NX_DRIVER_ERROR;
+    }
 
-  /* Decrease the multicast count.  */
-  nx_driver_information.nx_driver_information_multicast_count--;
+    /* Decrease the multicast count.  */
+    nx_driver_information.nx_driver_information_multicast_count--;
 
-  /* If multicast count reaches zero, disable multicast frame reception.  */
-  if (nx_driver_information.nx_driver_information_multicast_count == 0) {
-    synopGMAC_multicast_disable(&GMACdev);
-  }
+    /* If multicast count reaches zero, disable multicast frame reception.  */
+    if (nx_driver_information.nx_driver_information_multicast_count == 0) {
+        synopGMAC_multicast_disable(&GMACdev);
+    }
 
-  /* Return success.  */
-  return(NX_SUCCESS);
+    /* Return success.  */
+    return(NX_SUCCESS);
 }
 
 
@@ -1809,54 +1872,27 @@ static UINT  _nx_driver_hardware_multicast_leave(NX_IP_DRIVER *driver_req_ptr)
 /**************************************************************************/
 static UINT  _nx_driver_hardware_get_status(NX_IP_DRIVER *driver_req_ptr)
 {
-  INT PHYLinkState;
+    INT PHYLinkState;
 
-  /* Get link status. */
-  PHYLinkState = _nx_mii_link_ok(&GMACdev);
-
-  /* Check link status. */
-  if(PHYLinkState <= 0)
-  {
-    /* Update Link status if physical link is down. */
-    *(driver_req_ptr->nx_ip_driver_return_ptr) = NX_FALSE;
-  }
-  else
-  {
-    /* Update Link status if physical link is up. */
-    *(driver_req_ptr->nx_ip_driver_return_ptr) = NX_TRUE;
-  }
-
-  /* Return success. */
-  return NX_SUCCESS;
-}
-
-void HAL_ETH_TxFreeCallback(uint32_t * buff)
-{
-  NX_PACKET * release_packet = (NX_PACKET *) buff;
-
-  /* Remove the Ethernet header and release the packet.  */
-  NX_DRIVER_ETHERNET_HEADER_REMOVE(release_packet);
-
-  /* Release the packet.  */
-  nx_packet_transmit_release(release_packet);
-}
-
-static VOID  _nx_driver_hardware_packet_received(bool interrupt)
-{
-    uint32_t len = 0;
-    PKT_FRAME_T* psPktFrame = 0;
-    if ((len = synop_handle_received_data(&GMACdev, &psPktFrame)) > 0 ) {	
-#if 0 // FIXME!!!
-      NX_PACKET *packet_ptr = 0;
-      if (nx_packet_allocate(nx_driver_information.nx_driver_information_packet_pool_ptr, &packet_ptr, NX_RECEIVE_PACKET, NX_NO_WAIT) == NX_SUCCESS) {
-          _nx_driver_transfer_to_netx(nx_driver_information.nx_driver_information_ip_ptr, packet_ptr);
-      }
-#endif  // #if 0 // FIXME!!!
-    } else {
-      if (interrupt) {
-        synopGMAC_enable_interrupt(&GMACdev, DmaIntEnable);
-      }
+    if (!synopGMACdeviceInit) {
+        printf("_nx_driver_hardware_get_status fail!\n");
+        return NX_DRIVER_ERROR;
     }
+
+    /* Get link status. */
+    PHYLinkState = _nx_mii_link_ok(&GMACdev);
+
+    /* Check link status. */
+    if(PHYLinkState <= 0) {
+        /* Update Link status if physical link is down. */
+        *(driver_req_ptr->nx_ip_driver_return_ptr) = NX_FALSE;
+    } else {
+        /* Update Link status if physical link is up. */
+        *(driver_req_ptr->nx_ip_driver_return_ptr) = NX_TRUE;
+    }
+
+    /* Return success. */
+    return NX_SUCCESS;
 }
 
 #ifdef NX_ENABLE_INTERFACE_CAPABILITY
@@ -2035,11 +2071,13 @@ static int32_t _nx_mii_link_ok(synopGMACdevice *gmacdev) {
     /* first, a dummy read, needed to latch some MII phys */
     _nx_mii_mdio_read(gmacdev, MII_BMSR, &value);    
     ret = _nx_mii_mdio_read(gmacdev, MII_BMSR, &value);
-    if(ret)
+    if(ret) {
         return ret;
+    }
     
-    if(value & BMSR_LSTATUS)
+    if(value & BMSR_LSTATUS) {
         return 1;
+    }
     
     return 0;
 }
@@ -2068,42 +2106,42 @@ static int32_t _nx_mii_ethtool_gset(synopGMACdevice *gmacdev, uint8_t reset) {
     
     gmacdev->LinkState = LINKDOWN;
     
-    if(reset)
-    {
+    if(reset) {
         // perform PHY reset
         do {
             ret = _nx_mii_mdio_write(gmacdev, MII_BMCR, BMCR_RESET);
-            if(ret < 0)
+            if(ret < 0) {
                 break;
+            }
             
             loop_count = 10000;
-            while(loop_count-- > 0)
-            {
+            while(loop_count-- > 0) {
                 ret = _nx_mii_mdio_read(gmacdev, MII_BMCR, &val);
                 if(ret < 0)
                     break;
                 if((val & BMCR_RESET) == 0)
                     break;
             }
-            if((ret < 0) || (loop_count < 0))
-            {
+            if((ret < 0) || (loop_count < 0)) {
                 ret = -ESYNOPGMACPHYERR;
                 break;
             }
 
             ret = _nx_mii_mdio_write(gmacdev, MII_ADVERTISE, (ADVERTISE_FULL | ADVERTISE_ALL));
-            if(ret < 0)
+            if(ret < 0) {
                 break;
+            }
             ret = _nx_mii_mdio_read(gmacdev, MII_BMCR, &val);
-            if(ret < 0)
+            if(ret < 0) {
                 break;
+            }
             ret = _nx_mii_mdio_write(gmacdev, MII_BMCR, (val | BMCR_ANRESTART));
-            if(ret < 0)
+            if(ret < 0) {
                 break;
+            }
         } while(0);
         
-        if(ret < 0)
-        {
+        if(ret < 0) {
             printf("mii:: Reset PHY, FAIL.\n");
             return -ESYNOPGMACPHYERR;
         }
@@ -2113,16 +2151,14 @@ static int32_t _nx_mii_ethtool_gset(synopGMACdevice *gmacdev, uint8_t reset) {
     
     do {        
         loop_count = 200000;
-        while(loop_count-- > 0)
-        {
+        while(loop_count-- > 0) {
             ret = _nx_mii_mdio_read(gmacdev, MII_BMSR, &val);
             if(ret < 0)
                 break;
             if((val & (BMSR_LSTATUS | BMSR_ANEGCOMPLETE)) == (BMSR_LSTATUS | BMSR_ANEGCOMPLETE))
                 break;
         }
-        if((ret < 0) || (loop_count < 0))
-        {
+        if((ret < 0) || (loop_count < 0)) {
             gmacdev->DuplexMode = 0;
             gmacdev->Speed      = 0;
             ret = -ESYNOPGMACPHYERR;
@@ -2130,12 +2166,12 @@ static int32_t _nx_mii_ethtool_gset(synopGMACdevice *gmacdev, uint8_t reset) {
         }
                 
         ret = _nx_mii_mdio_read(gmacdev, MII_LPA, &lpa);
-        if(ret < 0)
+        if(ret < 0) {
             break;
+        }
     } while(0);
     
-    if(ret < 0)
-    {
+    if(ret < 0) {
         printf("mii:: Read MII_BMSR status, FAIL.\n");
         return -ESYNOPGMACPHYERR;
     }    
@@ -2143,32 +2179,23 @@ static int32_t _nx_mii_ethtool_gset(synopGMACdevice *gmacdev, uint8_t reset) {
     gmacdev->LinkState = LINKUP;
     
     val = _nx_mii_nway_result(lpa);
-    if(val & LPA_100FULL)
-    {
+    if(val & LPA_100FULL) {
         printf("mii:: 100M FULLDUPLEX\n");
         gmacdev->DuplexMode = FULLDUPLEX;
         gmacdev->Speed      = SPEED100;
-    }
-    else if(val & LPA_100HALF)
-    {
-        printf("mii:: 100M HALFDUPLEX\n");
+    } else if(val & LPA_100HALF) {
+       printf("mii:: 100M HALFDUPLEX\n");
         gmacdev->DuplexMode = HALFDUPLEX;
         gmacdev->Speed      = SPEED100;
-    }
-    else if(val & LPA_10FULL)
-    {
+    } else if(val & LPA_10FULL) {
         printf("mii:: 10M FULLDUPLEX\n");
         gmacdev->DuplexMode = FULLDUPLEX;
         gmacdev->Speed      = SPEED10;
-    }
-    else if(val & LPA_10HALF)
-    {
+    } else if(val & LPA_10HALF) {
         printf("mii:: 10M HALFDUPLEX\n");
         gmacdev->DuplexMode = HALFDUPLEX;
         gmacdev->Speed      = SPEED10;
-    }
-    else
-    {
+    } else {
         printf("mii:: 100M FULLDUPLEX (Default: LPA 0x%x)\n", val);
         gmacdev->DuplexMode = FULLDUPLEX;
         gmacdev->Speed      = SPEED100;
@@ -2181,20 +2208,18 @@ static int32_t _nx_mii_check_phy_init(synopGMACdevice *gmacdev) {
     int32_t ret = -1;
     
     ret = _nx_mii_link_ok(gmacdev); 
-    if(ret < 0)
+    if(ret < 0) {
         return ret;
+    }
     
-    if(ret == LINKDOWN)
-    {
+    if(ret == LINKDOWN) {
         gmacdev->DuplexMode = 0;
         gmacdev->Speed      = 0;
         gmacdev->LinkState  = 0;
         gmacdev->LoopBackMode = 0;
         
         return ret;
-    }
-    else
-    {
+    } else {
         _nx_mii_ethtool_gset(gmacdev, 1);
         
         return (gmacdev->Speed | (gmacdev->DuplexMode << 4));
@@ -2209,8 +2234,7 @@ void EMAC0_IRQHandler(void) {
 
     // Check GMAC interrupt
     u32GmacIntSts = synopGMACReadReg(GMACdev.MacBase, GmacInterruptStatus);
-    if (u32GmacIntSts & GmacTSIntSts)
-    {
+    if (u32GmacIntSts & GmacTSIntSts) {
         GMACdev.synopGMACNetStats.ts_int = 1;
         status = synopGMACReadReg(GMACdev.MacBase, GmacTSStatus);
         if (!(status & (1 << 1)))
@@ -2226,28 +2250,30 @@ void EMAC0_IRQHandler(void) {
     synopGMACWriteReg(GMACdev.MacBase, GmacInterruptStatus, u32GmacIntSts);
 
     dma_status_reg = synopGMACReadReg(GMACdev.DmaBase, DmaStatus);
-    if (dma_status_reg == 0)
-    {
+    if (dma_status_reg == 0) {
         printf("dma_status ==0 \n");
         return;
     }
 
-    if (dma_status_reg & GmacPmtIntr)
-    {
+    if (dma_status_reg & GmacPmtIntr) {
         printf("%s:: Interrupt due to PMT module\n", __func__);
         synopGMAC_powerup_mac(&GMACdev);
     }
 
-    if (dma_status_reg & GmacLineIntfIntr)
-    {
+    if (dma_status_reg & GmacLineIntfIntr) {
         printf("%s:: Interrupt due to GMAC LINE module\n", __func__);
+        if (synopGMACReadReg(GMACdev.MacBase, GmacInterruptStatus) & GmacRgmiiIntSts) {
+            printf("%s: GMAC RGMII status is %08x\n",
+                  __func__,
+                  synopGMACReadReg(GMACdev.MacBase, GmacRgmiiCtrlSts));
+            synopGMACReadReg(GMACdev.MacBase, GmacRgmiiCtrlSts);
+        }
     }
 
     interrupt = synopGMAC_get_interrupt_type(&GMACdev);
-    printf("%s:Interrupts to be handled: 0x%08x  %08x\n", __func__, interrupt);
+//    printf("%s:Interrupts to be handled: 0x%08x  %08x\n", __func__, interrupt);
 
-    if (interrupt & synopGMACDmaError)
-    {
+    if (interrupt & synopGMACDmaError) {
         printf("%s::Fatal Bus Error Inetrrupt Seen\n", __func__);
         synopGMAC_disable_dma_tx(&GMACdev);
         synopGMAC_disable_dma_rx(&GMACdev);
@@ -2271,18 +2297,14 @@ void EMAC0_IRQHandler(void) {
     }
 
     if ((interrupt & synopGMACDmaRxNormal) ||
-        (interrupt & synopGMACDmaRxAbnormal))
-    {
-        if (interrupt & synopGMACDmaRxNormal)
-        {
-            printf("%s:: Rx Normal \n", __func__);
+        (interrupt & synopGMACDmaRxAbnormal)) {
+        if (interrupt & synopGMACDmaRxNormal) {
+//            printf("%s:: Rx Normal \n", __func__);
             u32GmacDmaIE &= ~DmaIntRxNormMask;  // disable RX interrupt
         }
-        if (interrupt & synopGMACDmaRxAbnormal)
-        {
-            printf("%s::Abnormal Rx Interrupt Seen %08x\n", __func__, dma_status_reg);
-            if (GMACdev.GMAC_Power_down == 0)
-            {
+        if (interrupt & synopGMACDmaRxAbnormal) {
+//            printf("%s::Abnormal Rx Interrupt Seen %08x\n", __func__, dma_status_reg);
+            if (GMACdev.GMAC_Power_down == 0) {
                 GMACdev.synopGMACNetStats.rx_over_errors++;
                 u32GmacDmaIE &= ~DmaIntRxAbnMask;
                 synopGMAC_resume_dma_rx(&GMACdev);
@@ -2290,50 +2312,78 @@ void EMAC0_IRQHandler(void) {
         }
     }
 
-    if (interrupt & synopGMACDmaRxStopped)
-    {
-        printf("%s::Receiver stopped seeing Rx interrupts\n", __func__); //Receiver gone in to stopped state
-        if (GMACdev.GMAC_Power_down == 0)   // If Mac is not in powerdown
-        {
+    if (interrupt & synopGMACDmaRxStopped) {
+//        printf("%s::Receiver stopped seeing Rx interrupts\n", __func__); //Receiver gone in to stopped state
+        if (GMACdev.GMAC_Power_down == 0) { // If Mac is not in powerdown
             GMACdev.synopGMACNetStats.rx_over_errors++;
             synopGMAC_enable_dma_rx(&GMACdev);
         }
     }
 
-    if (interrupt & synopGMACDmaTxNormal)
-    {
-        printf("%s::Finished Normal Transmission \n", __func__);
-        synop_handle_transmit_over(&GMACdev);//Do whatever you want after the transmission is over
+    if (interrupt & synopGMACDmaTxNormal) {
+//        printf("%s::Finished Normal Transmission \n", __func__);
+        synop_handle_transmit_over(&GMACdev); // Do whatever you want after the transmission is over
     }
 
-    if (interrupt & synopGMACDmaTxAbnormal)
-    {
+    if (interrupt & synopGMACDmaTxAbnormal) {
         printf("%s::Abnormal Tx Interrupt Seen\n", __func__);
-        if (GMACdev.GMAC_Power_down == 0)   // If Mac is not in powerdown
-        {
+        if (GMACdev.GMAC_Power_down == 0) { // If Mac is not in powerdown
             synop_handle_transmit_over(&GMACdev);
         }
     }
 
-    if (interrupt & synopGMACDmaTxStopped)
-    {
-        printf("%s::Transmitter stopped sending the packets\n", __func__);
-        if (GMACdev.GMAC_Power_down == 0)    // If Mac is not in powerdown
-        {
+    if (interrupt & synopGMACDmaTxStopped) {
+//        printf("%s::Transmitter stopped sending the packets\n", __func__);
+        if (GMACdev.GMAC_Power_down == 0) { // If Mac is not in powerdown
             synopGMAC_disable_dma_tx(&GMACdev);
             synopGMAC_take_desc_ownership_tx(&GMACdev);
             synopGMAC_enable_dma_tx(&GMACdev);
-            printf("%s::Transmission Resumed\n", __func__);
+//            printf("%s::Transmission Resumed\n", __func__);
         }
     }
 
-    if (interrupt & synopGMACDmaRxNormal)
-    {
-        _nx_driver_hardware_packet_received(true);
+    synopGMAC_enable_interrupt(&GMACdev, u32GmacDmaIE);
+
+    /* Enable the interrrupt before returning from ISR */
+    if (interrupt & synopGMACDmaRxNormal) {
+      if (_nx_driver_hardware_packet_received()) {
+        synopGMAC_enable_interrupt(&GMACdev, DmaIntEnable);
+      }
     }
-    else
-    {
-        /* Enable the interrrupt before returning from ISR */
-        synopGMAC_enable_interrupt(&GMACdev, u32GmacDmaIE);
+}
+
+static NX_PACKET *nx_net_buffer_alloc(uint32_t n)
+{
+  UINT status = 0;
+  NX_PACKET * packet_ptr = 0;
+
+  if (!nx_driver_information.nx_driver_information_packet_pool_ptr)
+    return NULL;
+
+  status = nx_packet_allocate(nx_driver_information.nx_driver_information_packet_pool_ptr, &packet_ptr, NX_RECEIVE_PACKET, NX_NO_WAIT);
+  if (status != NX_SUCCESS)
+    return NULL;
+
+  packet_ptr->nx_packet_next = NULL;
+  packet_ptr->nx_packet_prepend_ptr += 2;
+  packet_ptr->nx_packet_append_ptr = packet_ptr->nx_packet_prepend_ptr + n;
+  packet_ptr->nx_packet_length = n;
+
+  return packet_ptr;
+}
+
+static bool _nx_driver_hardware_packet_received()
+{
+  uint32_t len = 0;
+  PKT_FRAME_T* psPktFrame = 0;
+  if ((len = synop_handle_received_data(&GMACdev, &psPktFrame)) > 0 ) {	
+    synopGMAC_set_rx_qptr(&GMACdev, (u32)psPktFrame, PKT_FRAME_BUF_SIZE, 0);
+    NX_PACKET *packet_ptr = nx_net_buffer_alloc(len);
+    if (packet_ptr) {
+        memcpy(packet_ptr->nx_packet_prepend_ptr, psPktFrame->au8Buf, len);
+        _nx_driver_transfer_to_netx(nx_driver_information.nx_driver_information_ip_ptr, packet_ptr);
     }
+    return true;
+  }
+  return false;
 }

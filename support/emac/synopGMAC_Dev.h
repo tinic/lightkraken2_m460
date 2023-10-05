@@ -42,8 +42,8 @@
 
 enum GMACPhyBase
 {
-    PHY0  = 0,                          // The device can support 32 phys, but we use first phy only
-    PHY1  = 1,
+    PHY0  =  0,                         // The device can support 32 phys, but we use first phy only
+    PHY1  =  1,
     PHY31 = 31,
 };
 
@@ -97,8 +97,8 @@ typedef struct DmaDescStruct
     u32   reserved1;      /* Reserved word                                                      */
     u32   timestamplow;   /* Lower 32 bits of the 64 bit timestamp value                        */
     u32   timestamphigh;  /* Higher 32 bits of the 64 bit timestamp value                       */
-    u32   data1;          /* This holds virtual address of buffer1, not used by DMA             */
-    u32   data2;          /* This holds virtual address of buffer2, not used by DMA             */
+ //   u32   data1;          /* This holds virtual address of buffer1, not used by DMA             */
+ //   u32   data2;          /* This holds virtual address of buffer2, not used by DMA             */
 } DmaDesc;
 
 enum DescMode
@@ -923,8 +923,8 @@ enum DmaDescriptorStatus    /* status word of DMA descriptor */
     DescTxCisMask         = 0x00c00000,   /* Tx checksum offloading control mask             23:22            */
     DescTxCisBypass       = 0x00000000,   /* Checksum bypass                              */
     DescTxCisIpv4HdrCs    = 0x00400000,   /* IPv4 header checksum                             */
-    DescTxCisTcpOnlyCs    = 0x00800000, /* TCP/UDP/ICMP checksum. Pseudo header checksum is assumed to be present   */
-    DescTxCisTcpPseudoCs  = 0x00c00000, /* TCP/UDP/ICMP checksum fully in hardware including pseudo header      */
+    DescTxCisTcpOnlyCs    = 0x00800000,   /* TCP/UDP/ICMP checksum. Pseudo header checksum is assumed to be present   */
+    DescTxCisTcpPseudoCs  = 0x00c00000,   /* TCP/UDP/ICMP checksum fully in hardware including pseudo header      */
 
     TxDescEndOfRing       = 0x00200000,   /* (TER)End of descriptors ring                        21                       */
     TxDescChain           = 0x00100000,   /* (TCH)Second buffer address is chain address         20                       */

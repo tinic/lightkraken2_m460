@@ -1545,8 +1545,8 @@ s32 synopGMAC_get_tx_qptr(synopGMACdevice *gmacdev, u32 *Status, u32 *Buffer1, u
         gmacdev->TxBusyDesc = synopGMAC_is_last_tx_desc(gmacdev, txdesc) ? gmacdev->TxDesc : (txdesc + 1);
         synopGMAC_tx_desc_init_ring(txdesc, synopGMAC_is_last_tx_desc(gmacdev, txdesc));
     }
-//    printf("%02d %08x %08x %08x %08x %08x %08x %08x\n", txover, (u32)txdesc, txdesc->status, txdesc->length, txdesc->buffer1, txdesc->buffer2, txdesc->data1, txdesc->data2);
-    printf("%02d %08x %08x %08x %08x %08x\n", txover, (u32)txdesc, txdesc->status, txdesc->length, txdesc->buffer1, txdesc->buffer2);
+//    printf("(get)%02d %08x %08x %08x %08x %08x %08x %08x\n", txover, (u32)txdesc, txdesc->status, txdesc->length, txdesc->buffer1, txdesc->buffer2, txdesc->data1, txdesc->data2);
+//    printf("(get)%02d %08x %08x %08x %08x %08x\n", txover, (u32)txdesc, txdesc->status, txdesc->length, txdesc->buffer1, txdesc->buffer2);
 
     return txover;
 }
@@ -1629,7 +1629,7 @@ s32 synopGMAC_set_tx_qptr(synopGMACdevice *gmacdev, u32 Buffer1, u32 Length1, u3
     gmacdev->TxNextDesc = synopGMAC_is_last_tx_desc(gmacdev, txdesc) ? gmacdev->TxDesc : (txdesc + 1);
 
     //printf("(set)%02d %08x %08x %08x %08x %08x %08x %08x\n", txnext, (u32)txdesc, txdesc->status, txdesc->length, txdesc->buffer1, txdesc->buffer2, txdesc->data1, txdesc->data2);
-    printf("(set)%02d %08x %08x %08x %08x %08x\n", txnext, (u32)txdesc, txdesc->status, txdesc->length, txdesc->buffer1, txdesc->buffer2);
+    //printf("(set)%02d %08x %08x %08x %08x %08x\n", txnext, (u32)txdesc, txdesc->status, txdesc->length, txdesc->buffer1, txdesc->buffer2);
     return txnext;
 }
 
@@ -1681,8 +1681,8 @@ s32 synopGMAC_set_rx_qptr(synopGMACdevice *gmacdev, u32 Buffer1, u32 Length1, u3
     gmacdev->RxNext     = synopGMAC_is_last_rx_desc(gmacdev, rxdesc) ? 0 : rxnext + 1;
     gmacdev->RxNextDesc = synopGMAC_is_last_rx_desc(gmacdev, rxdesc) ? gmacdev->RxDesc : (rxdesc + 1);
 
-//    printf("%02d %08x %08x %08x %08x %08x %08x %08x\n", rxnext, (u32)rxdesc, rxdesc->status, rxdesc->length, rxdesc->buffer1, rxdesc->buffer2, rxdesc->data1, rxdesc->data2);
-    printf("%02d %08x %08x %08x %08x %08x\n", rxnext, (u32)rxdesc, rxdesc->status, rxdesc->length, rxdesc->buffer1, rxdesc->buffer2);
+//    printf("(set1)%02d %08x %08x %08x %08x %08x %08x %08x\n", rxnext, (u32)rxdesc, rxdesc->status, rxdesc->length, rxdesc->buffer1, rxdesc->buffer2, rxdesc->data1, rxdesc->data2);
+//    printf("(set1)%02d %08x %08x %08x %08x %08x\n", rxnext, (u32)rxdesc, rxdesc->status, rxdesc->length, rxdesc->buffer1, rxdesc->buffer2);
 
     (gmacdev->BusyRxDesc)++; //One descriptor will be given to Hardware. So busy count incremented by one
     return rxnext;
@@ -1745,20 +1745,9 @@ s32 synopGMAC_get_rx_qptr(synopGMACdevice *gmacdev, u32 *Status, u32 *Buffer1, u
     /* Ring */
     gmacdev->RxBusyDesc = synopGMAC_is_last_rx_desc(gmacdev, rxdesc) ? gmacdev->RxDesc : (rxdesc + 1);
 
-#if 1
-    /* Wayne's modification */
     synopGMAC_rx_desc_init_ring(rxdesc, synopGMAC_is_last_rx_desc(gmacdev, rxdesc));
-#else    
-    // why init here.... should change onwer to DMA --ya
-    rxdesc->status = DescOwnByDma;
-    rxdesc->extstatus = 0;
-    rxdesc->reserved1 = 0;
-    rxdesc->timestamplow = 0;
-    rxdesc->timestamphigh = 0;
-    //printf("%02d %08x %08x %08x %08x %08x %08x %08x\n", rxnext, (u32)rxdesc, rxdesc->status, rxdesc->length, rxdesc->buffer1, rxdesc->buffer2, rxdesc->data1, rxdesc->data2);
-#endif
 
-    printf("%02d %08x %08x %08x %08x %08x\n", rxnext, (u32)rxdesc, rxdesc->status, rxdesc->length, rxdesc->buffer1, rxdesc->buffer2);
+//    printf("(get1)%02d %08x %08x %08x %08x %08x\n", rxnext, (u32)rxdesc, rxdesc->status, rxdesc->length, rxdesc->buffer1, rxdesc->buffer2);
     (gmacdev->BusyRxDesc)--; //busy tx descriptor is reduced by one as it will be handed over to Processor now
     return (rxnext);
 
