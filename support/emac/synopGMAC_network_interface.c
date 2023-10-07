@@ -462,6 +462,7 @@ s32 synop_handle_received_data(synopGMACdevice *gmacdev, PKT_FRAME_T **ppsPktFra
             else     // No extended status. So relevant information is available in the status itself
             {
                 uint32_t u32Status;
+#if 0
                 static const char *s_szRxChkSumStatus[] =
                 {
                     "IEEE 802.3 type frame Length field is Less than 0x0600",
@@ -473,7 +474,7 @@ s32 synop_handle_received_data(synopGMACdevice *gmacdev, PKT_FRAME_T **ppsPktFra
                     "Ip header checksum error detected for Ipv4 frames",
                     "Payload & Ip header checksum error detected for Ipv4/Ipv6 frames"
                 };
-
+#endif  // #if 0
                 u32Status = synopGMAC_is_rx_checksum_error(gmacdev, status);
 
                 if (RxNoChkError != u32Status)

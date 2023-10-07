@@ -29,6 +29,7 @@
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wwrite-strings"
 
+#if 0
 static TX_THREAD thread_blink {};
 void thread_blink_entry(ULONG thread_input) {
 //    int32_t i = 0;
@@ -56,6 +57,7 @@ void thread_blink_entry(ULONG thread_input) {
         tx_thread_sleep(20);
     }
 }
+#endif  // #if 0
 
 static NX_IP client_ip {};
 static NX_AUTO_IP auto_ip {};
