@@ -20,7 +20,6 @@ add_compile_definitions(
     TX_TIMER_PROCESS_IN_ISR
     TX_REACTIVATE_INLINE
     TX_INLINE_THREAD_RESUME_SUSPEND
-    FX_ENABLE_EXFAT
     __HXT=12000000UL
     __FPU_PRESENT=1U
     ARM_MATH_CM4
@@ -126,13 +125,13 @@ add_executable(${PROJECT_NAME}.elf
     ${BSP_DIR}/Library/Device/Nuvoton/m460/Source/system_m460.c
 )
 
-IF (WIN32)
+IF (${CMAKE_HOST_SYSTEM_NAME} STREQUAL  "Windows")
     set(MKFAT_BINARY ${PROJECT_SOURCE_DIR}/mkfat/build/Debug/mkfat.exe)
-    set(MKFAT_CMAKE_COMMAND cmake -Wno-deprecated .. )
-ELSE (WIN32)
+    set(MKFAT_CMAKE_COMMAND cmake -Wno-deprecated -G "Visual Studio 16 2019" .. )
+ELSE (${CMAKE_HOST_SYSTEM_NAME} STREQUAL  "Windows")
     set(MKFAT_BINARY ${PROJECT_SOURCE_DIR}/mkfat/build/mkfat)
     set(MKFAT_CMAKE_COMMAND cmake -Wno-deprecated -G "Ninja" .. )
-ENDIF (WIN32)
+ENDIF (${CMAKE_HOST_SYSTEM_NAME} STREQUAL  "Windows")
 
 file(MAKE_DIRECTORY ${PROJECT_SOURCE_DIR}/mkfat/build)
 add_custom_command(
@@ -148,7 +147,7 @@ message(${VUE3_FILES})
 add_custom_command(
     OUTPUT ${PROJECT_BINARY_DIR}/fs.h
     COMMAND yarn build 
-    COMMAND ${MKFAT_BINARY} ${PROJECT_SOURCE_DIR}/vue3/dist 1024 ${PROJECT_BINARY_DIR}/fs.h ${PROJECT_BINARY_DIR}/fs.img
+    COMMAND ${MKFAT_BINARY} ${PROJECT_SOURCE_DIR}/vue3/dist 512 ${PROJECT_BINARY_DIR}/fs.h ${PROJECT_BINARY_DIR}/fs.img
     WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/vue3
     DEPENDS ${VUE3_FILES} ${MKFAT_BINARY})
 target_sources(${PROJECT_NAME}.elf PRIVATE fs.h)
