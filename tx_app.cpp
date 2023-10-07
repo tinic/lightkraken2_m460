@@ -29,36 +29,6 @@
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wwrite-strings"
 
-#if 0
-static TX_THREAD thread_blink {};
-void thread_blink_entry(ULONG thread_input) {
-//    int32_t i = 0;
-
-    /* Enable GPIO PH to control LED */
-    CLK->AHBCLK0 |= CLK_AHBCLK0_GPHCKEN_Msk;
-
-    LED_INIT();
-    LED_YELLOW = 1;
-    LED_RED = 0;
-    LED_GREEN = 0;
-
-    while (1) {
-        LED_YELLOW = 0;
-        LED_RED = 1;
-        LED_GREEN = 1;
-        tx_thread_sleep(20);
-        LED_YELLOW = 1;
-        LED_RED = 0;
-        LED_GREEN = 1;
-        tx_thread_sleep(20);
-        LED_YELLOW = 1;
-        LED_RED = 1;
-        LED_GREEN = 0;
-        tx_thread_sleep(20);
-    }
-}
-#endif  // #if 0
-
 static NX_IP client_ip {};
 static NX_AUTO_IP auto_ip {};
 static NX_DHCP dhcp_client {};
@@ -220,10 +190,6 @@ void tx_application_define(void *first_unused_memory)
     uint8_t *pointer = (uint8_t *)first_unused_memory;
 
     fx_system_initialize();
-
-//    const size_t blink_stack_size = 256;
-//    tx_thread_create(&thread_blink, "blink", thread_blink_entry, 0, pointer, blink_stack_size, 1, 1, TX_NO_TIME_SLICE, TX_AUTO_START);
-//    pointer = pointer + blink_stack_size;
 
     const size_t startup_stack_size = 1024;
     tx_thread_create(&thread_startup, "startup", thread_startup_entry, 0, pointer, startup_stack_size, 1, 1, TX_NO_TIME_SLICE, TX_AUTO_START);
