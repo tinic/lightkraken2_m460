@@ -161,7 +161,7 @@ static void copy_tree(FX_MEDIA *media, const char *in_full_path, const char *in_
     closedir(dir);
 }
 
-void print_contents(FX_MEDIA *media, CHAR *default_dir) {
+void print_contents(FX_MEDIA *media, CHAR *default_dir, ULONG *total_bytes, ULONG *sector_bytes) {
     CHAR entry[64] = { 0 };
     CHAR dirs[64][64] = { 0 };
     UINT dir_count = 0;
@@ -180,13 +180,15 @@ void print_contents(FX_MEDIA *media, CHAR *default_dir) {
                 strcpy(dirs[dir_count++], entry);
             } else {
                 printf("file<%s/%s> size<%d bytes>\n", default_dir ? default_dir : "", entry, (int)size);
+                *total_bytes += size;
+                *sector_bytes += (size + media->fx_media_bytes_per_sector) & (~(media->fx_media_bytes_per_sector-1));
             }
         } while (fx_directory_next_full_entry_find(media, entry, &attributes, &size, NULL, NULL, NULL, NULL, NULL, NULL) == FX_SUCCESS);
     }
     for (UINT c = 0; c < dir_count; c++) {
         CHAR local_path[1024] = { 0 };
         sprintf(local_path, "%s/%s", default_dir ? default_dir : "", dirs[c]);
-        print_contents(media, local_path);
+        print_contents(media, local_path, total_bytes, sector_bytes);
     }
 }
 
@@ -202,7 +204,7 @@ int main(int argc, char *argv[]) {
 
     start = clock();  // Get the start time
 
-    printf("mkfat generating header and image file...");
+    printf("mkfat generating header and image file...\n");
 
     const char *source_path = argv[1];
     const size_t num_sectors = atoi(argv[2]);
@@ -274,13 +276,18 @@ int main(int argc, char *argv[]) {
         return 0;
     }
 
+    printf("total image size is %d bytes\n", (int)(ram_disk.fx_media_bytes_per_sector * ram_disk.fx_media_total_sectors));
+
     fx_directory_default_set(&ram_disk, NULL);
 
     char stripped_source_path[1024];
     strip_path(source_path, stripped_source_path);
     copy_tree(&ram_disk, stripped_source_path, "");
 
-    print_contents(&ram_disk, NULL);
+    ULONG total_bytes = 0;
+    ULONG sector_bytes = 0;
+    print_contents(&ram_disk, NULL, &total_bytes, &sector_bytes);
+    printf("total bytes on disk: %d bytes (%d actual sector bytes)\n", total_bytes, sector_bytes);
 
     fx_media_close(&ram_disk);
 
@@ -300,7 +307,7 @@ int main(int argc, char *argv[]) {
 
     cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;  // Calculate the elapsed time in seconds
 
-    printf("mkfat done in %.2f seconds.", cpu_time_used);
+    printf("mkfat done in %.2f seconds.\n", cpu_time_used);
 
     return 0;
 }
