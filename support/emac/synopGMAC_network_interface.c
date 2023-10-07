@@ -461,59 +461,48 @@ s32 synop_handle_received_data(synopGMACdevice *gmacdev, PKT_FRAME_T **ppsPktFra
             }
             else     // No extended status. So relevant information is available in the status itself
             {
-                if (synopGMAC_is_rx_checksum_error(gmacdev, status) == RxNoChkError)
+                uint32_t u32Status;
+                static const char *s_szRxChkSumStatus[] =
                 {
-                    //printf("Ip header and TCP/UDP payload checksum Bypassed <Chk Status = 4>  \n");
+                    "IEEE 802.3 type frame Length field is Less than 0x0600",
+                    "Payload & Ip header checksum bypassed (unsuppported payload)",
+                    "Reserved",
+                    "Neither IPv4 nor IPV6. So checksum bypassed",
+                    "No IPv4/IPv6 Checksum error detected",
+                    "Payload checksum error detected for Ipv4/Ipv6 frames",
+                    "Ip header checksum error detected for Ipv4 frames",
+                    "Payload & Ip header checksum error detected for Ipv4/Ipv6 frames"
+                };
+
+                u32Status = synopGMAC_is_rx_checksum_error(gmacdev, status);
+
+                if (RxNoChkError != u32Status)
+                {
+//                    printf("%s %d\n", s_szRxChkSumStatus[u32Status], u32Status);
                 }
-                if (synopGMAC_is_rx_checksum_error(gmacdev, status) == RxIpHdrChkError)
+
+                switch (u32Status)
                 {
-                    //Linux Kernel doesnot care for ipv4 header checksum. So we will simply proceed by printing a warning ....
-                    //printf(" Error in 16bit IPV4 Header Checksum <Chk Status = 6>  \n");
+                case RxIpHdrChkError:
                     gmacdev->synopGMACNetStats.rx_ip_header_errors++;
-                }
-                if (synopGMAC_is_rx_checksum_error(gmacdev, status) == RxLenLT600)
-                {
-                    //printf("IEEE 802.3 type frame with Length field Lesss than 0x0600 <Chk Status = 0> \n");
-                }
-                if (synopGMAC_is_rx_checksum_error(gmacdev, status) == RxIpHdrPayLoadChkBypass)
-                {
-                    //printf("Ip header and TCP/UDP payload checksum Bypassed <Chk Status = 1>\n");
-                }
-                if (synopGMAC_is_rx_checksum_error(gmacdev, status) == RxChkBypass)
-                {
-                    //printf("Ip header and TCP/UDP payload checksum Bypassed <Chk Status = 3>  \n");
-                }
-                if (synopGMAC_is_rx_checksum_error(gmacdev, status) == RxPayLoadChkError)
-                {
-                    //printf(" TCP/UDP payload checksum Error <Chk Status = 5>  \n");
+                    break;
+
+                case RxPayLoadChkError:
                     gmacdev->synopGMACNetStats.rx_ip_payload_errors++;
-                }
-                if (synopGMAC_is_rx_checksum_error(gmacdev, status) == RxIpHdrPayLoadChkError)
-                {
-                    //Linux Kernel doesnot care for ipv4 header checksum. So we will simply proceed by printing a warning ....
-                    //printf(" Both IP header and Payload Checksum Error <Chk Status = 7>  \n");
+                    break;
+
+                case RxIpHdrPayLoadChkError:
                     gmacdev->synopGMACNetStats.rx_ip_header_errors++;
                     gmacdev->synopGMACNetStats.rx_ip_payload_errors++;
+                    break;
+
+                default:
+                    break;
                 }
+
             }
             *ppsPktFrame = (PKT_FRAME_T *)dma_addr1;
-#if 0
-#ifdef CACHE_ON
-            memcpy((void *)pu8rb, (void *)((u32)dma_addr1 | UNCACHEABLE), len);
-#else
-            memcpy((void *)pu8rb, (void *)((u32)dma_addr1), len);
-#endif
-            if (prevtx != NULL)
-            {
-#ifdef CACHE_ON
-                memcpy((void *)pu8rb + len, (void *)((u32)(dma_addr1 | UNCACHEABLE) + len), 4);
-#else
-                memcpy((void *)pu8rb + len, (void *)((u32)dma_addr1 + len), 4);
-#endif
-            }
-//            rb->rdy = 1;
-//            rb->len = len;
-#endif
+
             gmacdev->synopGMACNetStats.rx_packets++;
             gmacdev->synopGMACNetStats.rx_bytes += len;
             if (status & DescRxTSAvailable)

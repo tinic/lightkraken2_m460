@@ -219,9 +219,9 @@ void tx_application_define(void *first_unused_memory)
 
     fx_system_initialize();
 
-    const size_t blink_stack_size = 256;
-    tx_thread_create(&thread_blink, "blink", thread_blink_entry, 0, pointer, blink_stack_size, 1, 1, TX_NO_TIME_SLICE, TX_AUTO_START);
-    pointer = pointer + blink_stack_size;
+//    const size_t blink_stack_size = 256;
+//    tx_thread_create(&thread_blink, "blink", thread_blink_entry, 0, pointer, blink_stack_size, 1, 1, TX_NO_TIME_SLICE, TX_AUTO_START);
+//    pointer = pointer + blink_stack_size;
 
     const size_t startup_stack_size = 1024;
     tx_thread_create(&thread_startup, "startup", thread_startup_entry, 0, pointer, startup_stack_size, 1, 1, TX_NO_TIME_SLICE, TX_AUTO_START);

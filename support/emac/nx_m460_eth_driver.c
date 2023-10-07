@@ -62,7 +62,9 @@ static VOID         _nx_driver_get_status(NX_IP_DRIVER *driver_req_ptr);
 static VOID         _nx_driver_capability_get(NX_IP_DRIVER *driver_req_ptr);
 static VOID         _nx_driver_capability_set(NX_IP_DRIVER *driver_req_ptr);
 #endif /* NX_ENABLE_INTERFACE_CAPABILITY */
+#ifdef NX_DRIVER_ENABLE_DEFERRED
 static VOID         _nx_driver_deferred_processing(NX_IP_DRIVER *driver_req_ptr);
+#endif  // #ifdef NX_DRIVER_ENABLE_DEFERRED
 static VOID         _nx_driver_transfer_to_netx(NX_IP *ip_ptr, NX_PACKET *packet_ptr);
 
 
@@ -221,6 +223,7 @@ VOID  nx_m460_eth_driver(NX_IP_DRIVER *driver_req_ptr)
       break;
     }
 
+#ifdef NX_DRIVER_ENABLE_DEFERRED
   case NX_LINK_DEFERRED_PROCESSING:
     {
 
@@ -231,6 +234,7 @@ VOID  nx_m460_eth_driver(NX_IP_DRIVER *driver_req_ptr)
 
       break;
     }
+#endif // #ifdef NX_DRIVER_ENABLE_DEFERRED
 
 
 #ifdef NX_ENABLE_INTERFACE_CAPABILITY
@@ -1153,6 +1157,7 @@ static VOID  _nx_driver_capability_set(NX_IP_DRIVER *driver_req_ptr)
 /*                                            resulting in version 6.1    */
 /*                                                                        */
 /**************************************************************************/
+#ifdef NX_DRIVER_ENABLE_DEFERRED
 static VOID  _nx_driver_deferred_processing(NX_IP_DRIVER *driver_req_ptr)
 {
   TX_INTERRUPT_SAVE_AREA
@@ -1179,6 +1184,7 @@ static VOID  _nx_driver_deferred_processing(NX_IP_DRIVER *driver_req_ptr)
   /* Mark request as successful.  */
   driver_req_ptr->nx_ip_driver_status =  NX_SUCCESS;
 }
+#endif  // #ifdef NX_DRIVER_ENABLE_DEFERRED
 
 
 /**************************************************************************/
@@ -1256,7 +1262,11 @@ static VOID _nx_driver_transfer_to_netx(NX_IP *ip_ptr, NX_PACKET *packet_ptr)
     packet_ptr -> nx_packet_length -= NX_DRIVER_ETHERNET_FRAME_SIZE;
 
     /* Route to the ip receive function.  */
+#ifdef NX_DRIVER_ENABLE_DEFERRED
     _nx_ip_packet_deferred_receive(ip_ptr, packet_ptr);
+#else  // #ifdef NX_DRIVER_ENABLE_DEFERRED
+    _nx_ip_packet_receive(ip_ptr, packet_ptr);
+#endif  // #ifdef NX_DRIVER_ENABLE_DEFERRED
   }
   else if (packet_type == NX_DRIVER_ETHERNET_ARP)
   {
@@ -2187,6 +2197,22 @@ void EMAC0_IRQHandler(void) {
     u32 u32GmacIntSts;
     u32 u32GmacDmaIE = DmaIntEnable;
 
+#define LED_INIT() (PH->MODE = ((PH->MODE & (~(0x3ful << 4 * 2))) | (0x15ul << 4 * 2)))
+#define LED_RED PH4
+#define LED_YELLOW PH5
+#define LED_GREEN PH6
+
+    static bool init = false;
+    if (!init) {
+      init = true;
+      /* Enable GPIO PH to control LED */
+      CLK->AHBCLK0 |= CLK_AHBCLK0_GPHCKEN_Msk;
+      LED_INIT();
+      LED_YELLOW = 0;
+      LED_RED = 0;
+      LED_GREEN = 0;
+    }
+
     // Check GMAC interrupt
     u32GmacIntSts = synopGMACReadReg(GMACdev.MacBase, GmacInterruptStatus);
     if (u32GmacIntSts & GmacTSIntSts) {
@@ -2252,15 +2278,17 @@ void EMAC0_IRQHandler(void) {
     if ((interrupt & synopGMACDmaRxNormal) ||
         (interrupt & synopGMACDmaRxAbnormal)) {
         if (interrupt & synopGMACDmaRxNormal) {
+            LED_GREEN ^= 1;
 //            printf("%s:: Rx Normal \n", __func__);
             u32GmacDmaIE &= ~DmaIntRxNormMask;  // disable RX interrupt
         }
         if (interrupt & synopGMACDmaRxAbnormal) {
+            LED_RED ^= 1;
 //            printf("%s::Abnormal Rx Interrupt Seen %08x\n", __func__, dma_status_reg);
             if (GMACdev.GMAC_Power_down == 0) {
                 GMACdev.synopGMACNetStats.rx_over_errors++;
                 u32GmacDmaIE &= ~DmaIntRxAbnMask;
-                synopGMAC_resume_dma_rx(&GMACdev);
+//                synopGMAC_resume_dma_rx(&GMACdev);
             }
         }
     }
@@ -2274,6 +2302,7 @@ void EMAC0_IRQHandler(void) {
     }
 
     if (interrupt & synopGMACDmaTxNormal) {
+        LED_YELLOW ^= 1;
 //        printf("%s::Finished Normal Transmission \n", __func__);
         synop_handle_transmit_over(&GMACdev); // Do whatever you want after the transmission is over
     }
@@ -2297,9 +2326,14 @@ void EMAC0_IRQHandler(void) {
 
     /* Enable the interrrupt before returning from ISR */
     if (interrupt & synopGMACDmaRxNormal) {
+#ifdef NX_DRIVER_ENABLE_DEFERRED
+      nx_driver_information.nx_driver_information_deferred_events |= NX_DRIVER_DEFERRED_PACKET_RECEIVED;
+      _nx_ip_driver_deferred_processing(nx_driver_information.nx_driver_information_ip_ptr);
+#else // #ifdef NX_DRIVER_ENABLE_DEFERRED
       if (_nx_driver_hardware_packet_received()) {
         synopGMAC_enable_interrupt(&GMACdev, DmaIntEnable);
       }
+#endif  // #ifdef NX_DRIVER_ENABLE_DEFERRED
     }
 
     synopGMAC_enable_interrupt(&GMACdev, u32GmacDmaIE);
@@ -2319,27 +2353,46 @@ static NX_PACKET *nx_net_buffer_alloc(uint32_t n)
         return NULL;
     }
 
-    packet_ptr->nx_packet_next = NULL;
     packet_ptr->nx_packet_prepend_ptr += 2;
-    packet_ptr->nx_packet_append_ptr = packet_ptr->nx_packet_prepend_ptr + n;
+    packet_ptr->nx_packet_next = NULL;
     packet_ptr->nx_packet_length = n;
+    packet_ptr->nx_packet_append_ptr = packet_ptr->nx_packet_prepend_ptr + n;
 
     return packet_ptr;
 }
 
 static bool _nx_driver_hardware_packet_received()
 {
+    TX_INTERRUPT_SAVE_AREA;
+
+    TX_DISABLE;
+
+    static uint32_t total_count = 0;
+    uint32_t count = 0;
     uint32_t len = 0;
     PKT_FRAME_T* psPktFrame = 0;
-    if ((len = synop_handle_received_data(&GMACdev, &psPktFrame)) > 0 ) {	
-        synopGMAC_set_rx_qptr(&GMACdev, (u32)psPktFrame, PKT_FRAME_BUF_SIZE, 0);
+    while (1) {	
+        len = synop_handle_received_data(&GMACdev, &psPktFrame);
+        if (len <= 0) {
+          synopGMAC_enable_interrupt(&GMACdev, DmaIntEnable);
+          break;
+        }
         NX_PACKET *packet_ptr = nx_net_buffer_alloc(len);
         if (packet_ptr) {
-            memcpy(packet_ptr->nx_packet_prepend_ptr, psPktFrame->au8Buf, len);
+            count ++; 
+            total_count ++;
+            memcpy(packet_ptr->nx_packet_prepend_ptr, (void *)psPktFrame, len);
             _nx_driver_transfer_to_netx(nx_driver_information.nx_driver_information_ip_ptr, packet_ptr);
+        } else {
+            printf("_nx_driver_hardware_packet_received: Dropped to floor!\n");
         }
-        return true;
+        synopGMAC_set_rx_qptr(&GMACdev, (u32)psPktFrame, PKT_FRAME_BUF_SIZE, 0);
     }
+
+    TX_RESTORE;
+
+//    printf("_nx_driver_hardware_packet_received total %d local %d\n", total_count, count);
+
     return false;
 }
 
