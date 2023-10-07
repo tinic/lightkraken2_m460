@@ -5,6 +5,7 @@ import os
 from FATtools.Volume import vopen, vclose, copy_tree_in
 from FATtools.mkfat import exfat_mkfs
 from FATtools.disk import disk
+from FATtools.partutils import partition
 
 numBytes = int(sys.argv[1])
 scanDir = os.path.normpath(sys.argv[2])
@@ -51,10 +52,17 @@ if numBytes<128000:
 
 img = io.BytesIO(numBytes*b'\x00')
 
+img.seek(0)
 vol = vopen(img, 'r+b', what='disk')
+partition(vol, 'mbr')
+vclose(vol)
+
+img.seek(0)
+vol = vopen(img, 'r+b', what='partition0')
 exfat_mkfs(vol, vol.size)
 vclose(vol)
 
+img.seek(0)
 vol = vopen(img, 'r+b')
 copy_tree_in(scanDir, vol)
 vclose(vol)

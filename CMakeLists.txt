@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.0...3.16)
 
 # M46x M467 M467SJHAN
 project(lightkraken2 C CXX ASM)
@@ -126,14 +126,29 @@ add_executable(${PROJECT_NAME}.elf
     ${BSP_DIR}/Library/Device/Nuvoton/m460/Source/system_m460.c
 )
 
+IF (WIN32)
+    set(MKFAT_BINARY ${PROJECT_SOURCE_DIR}/mkfat/build/Debug/mkfat.exe)
+ELSE (WIN32)
+    set(MKFAT_BINARY ${PROJECT_SOURCE_DIR}/mkfat/build/Debug/mkfat)
+ENDIF (WIN32)
+
+file(MAKE_DIRECTORY ${PROJECT_SOURCE_DIR}/mkfat/build)
+add_custom_command(
+    OUTPUT ${MKFAT_BINARY}
+    COMMAND cmake -Wno-deprecated .. 
+    WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/mkfat/build
+    COMMAND cmake --build . 
+    WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/mkfat/build)
+
 file(GLOB VUE3_FILES
        ${PROJECT_SOURCE_DIR}/vue3/src/*.*)
 message(${VUE3_FILES})
 add_custom_command(
     OUTPUT ${PROJECT_BINARY_DIR}/fs.h
-    COMMAND yarn build WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/vue3
-    COMMAND python3 ${PROJECT_SOURCE_DIR}/fs.py 131072 ${PROJECT_SOURCE_DIR}/vue3/dist/ ${PROJECT_BINARY_DIR}/fs.h ${PROJECT_BINARY_DIR}/fs.img
-    DEPENDS ${VUE3_FILES})
+    COMMAND yarn build 
+    COMMAND ${MKFAT_BINARY} ${PROJECT_SOURCE_DIR}/vue3/dist 1024 ${PROJECT_BINARY_DIR}/fs.h ${PROJECT_BINARY_DIR}/fs.img
+    WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/vue3
+    DEPENDS ${VUE3_FILES} ${MKFAT_BINARY})
 target_sources(${PROJECT_NAME}.elf PRIVATE fs.h)
 
 include_directories(${PROJECT_SOURCE_DIR}/support)

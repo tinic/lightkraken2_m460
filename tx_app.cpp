@@ -63,6 +63,7 @@ static NX_DHCP dhcp_client {};
 static NX_HTTP_SERVER http_server {};
 static NX_PACKET_POOL client_pool {};
 static FX_MEDIA ram_disk {};
+static unsigned char media_memory[512];
 
 static void dhcp_state_change(NX_DHCP *dhcp_ptr, UCHAR new_state)
 {
@@ -190,8 +191,7 @@ start_web_server:
         return;
     }
 
-    static unsigned char media_memory[512];
-#if 1
+#if 0
     fx_media_exFAT_format(&ram_disk,
                           _fx_ram_driver,         // Driver entry
                           fs_data,        // RAM disk memory pointer
@@ -206,7 +206,7 @@ start_web_server:
                           12345,                  // Volume ID
                           1);                     // Boundary unit
 #endif  // #if 0
-    status =  fx_media_open(&ram_disk, "RAM Disk", _fx_ram_driver, fs_data, media_memory, sizeof(media_memory));
+    status =  fx_media_open(&ram_disk, "RAM Disk", _fx_ram_driver, fs_data + 0x9600, media_memory, sizeof(media_memory));
     if (status) {
         return;
     }
