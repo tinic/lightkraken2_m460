@@ -285,5 +285,14 @@ void tx_application_define(void *first_unused_memory)
         return;
     }
 
+    static NX_HTTP_SERVER_MIME_MAP map[] = {
+        {"js",     "text/javascript"},
+        {"css",    "text/css"},
+        {"json",   "application/json"},
+        {"svg",    "image/svg+xml"}
+    };
+
+    nx_http_server_mime_maps_additional_set(&http_server, map, 4);
+
     printf("Consumed %d bytes of RAM.\n", (int)(pointer-(uint8_t *)first_unused_memory));
 }
