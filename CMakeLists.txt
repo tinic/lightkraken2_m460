@@ -125,6 +125,7 @@ add_executable(${PROJECT_NAME}.elf
     ${BSP_DIR}/Library/Device/Nuvoton/m460/Source/system_m460.c
 )
 
+# Generate mkfat tool locally. This is fragile...
 IF (${CMAKE_HOST_SYSTEM_NAME} STREQUAL  "Windows")
     set(MKFAT_BINARY ${PROJECT_SOURCE_DIR}/mkfat/build/Debug/mkfat.exe)
     set(MKFAT_CMAKE_COMMAND cmake -Wno-deprecated -G "Visual Studio 16 2019" .. )
@@ -137,9 +138,10 @@ file(MAKE_DIRECTORY ${PROJECT_SOURCE_DIR}/mkfat/build)
 add_custom_command(
     OUTPUT ${MKFAT_BINARY}
     COMMAND ${MKFAT_CMAKE_COMMAND}
-    WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/mkfat/build
     COMMAND cmake --build . 
-    WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/mkfat/build)
+    WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/mkfat/build
+    DEPENDS ${PROJECT_SOURCE_DIR}/mkfat/main.c)
+# Done generating mkfat tool...
 
 file(GLOB VUE3_FILES
        ${PROJECT_SOURCE_DIR}/vue3/src/*.*)

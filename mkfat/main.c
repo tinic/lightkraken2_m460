@@ -194,6 +194,7 @@ void print_contents(FX_MEDIA *media, CHAR *default_dir, ULONG *total_bytes, ULON
 
 int main(int argc, char *argv[]) {
 
+
     if (argc != 5) {
         fprintf(stderr, "Usage: %s <source_path> <num_sectors> <header_file> <image_file>\n", argv[0]);
         return 1;  // exit with error code
@@ -202,9 +203,13 @@ int main(int argc, char *argv[]) {
     clock_t start, end;
     double cpu_time_used;
 
+#ifdef WIN32
+    SetConsoleOutputCP(CP_UTF8);
+#endif  // #ifdef WIN32
+
     start = clock();  // Get the start time
 
-    printf("mkfat generating header and image file...\n");
+    printf("🥓mkfat generating header and image file from source directory...\n");
 
     const char *source_path = argv[1];
     const size_t num_sectors = atoi(argv[2]);
@@ -307,7 +312,7 @@ int main(int argc, char *argv[]) {
 
     cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;  // Calculate the elapsed time in seconds
 
-    printf("mkfat done in %.2f seconds.\n", cpu_time_used);
+    printf("🥓mkfat done in %.2f seconds.\n", cpu_time_used);
 
     return 0;
 }
