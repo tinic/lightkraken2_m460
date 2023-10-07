@@ -57,22 +57,16 @@ static int should_strip(char c) {
 }
 
 void strip_path(const char *path, char *result) {
-    int start = 0;
     size_t end = strlen(path) - 1;
 
-    // Find the start index
-    while(should_strip(path[start]) && start < end) {
-        start++;
-    }
-
     // Find the end index
-    while(should_strip(path[end]) && end > start) {
+    while(should_strip(path[end]) && end > 0) {
         end--;
     }
 
     // Copy the substring to the result
     int j = 0;
-    for(int i = start; i <= end; i++) {
+    for(int i = 0; i <= end; i++) {
         result[j++] = path[i];
     }
     result[j] = '\0';  // Null-terminate the result string
@@ -171,7 +165,7 @@ void print_contents(FX_MEDIA *media, CHAR *default_dir) {
     CHAR dirs[64][64] = { 0 };
     UINT dir_count = 0;
     UINT attributes = 0;
-    UINT size = 0;
+    ULONG size = 0;
     if (fx_directory_default_set(&ram_disk, default_dir) != FX_SUCCESS) {
         return;
     }
@@ -184,7 +178,7 @@ void print_contents(FX_MEDIA *media, CHAR *default_dir) {
             if ((attributes & FX_DIRECTORY)) {
                 strcpy(dirs[dir_count++], entry);
             } else {
-                printf("file<%s/%s> size<%d bytes>\n", default_dir ? default_dir : "", entry, size);
+                printf("file<%s/%s> size<%d bytes>\n", default_dir ? default_dir : "", entry, (int)size);
             }
         } while (fx_directory_next_full_entry_find(media, entry, &attributes, &size, NULL, NULL, NULL, NULL, NULL, NULL) == FX_SUCCESS);
     }
