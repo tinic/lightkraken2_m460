@@ -196,6 +196,8 @@ int main(int argc, char *argv[]) {
         return 1;  // exit with error code
     }
 
+    printf("mkfat generating header and image file...");
+
     const char *source_path = argv[1];
     const size_t num_sectors = atoi(argv[2]);
     const char *header_file = argv[3];
@@ -287,6 +289,8 @@ int main(int argc, char *argv[]) {
         fwrite(fs_data, 1, num_sectors * SECTOR_SIZE, fp_img);
         fclose(fp_img);
     }
+
+    printf("mkfat done.");
 
     return 0;
 }
