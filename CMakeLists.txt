@@ -128,14 +128,16 @@ add_executable(${PROJECT_NAME}.elf
 
 IF (WIN32)
     set(MKFAT_BINARY ${PROJECT_SOURCE_DIR}/mkfat/build/Debug/mkfat.exe)
+    set(MKFAT_CMAKE_COMMAND cmake -Wno-deprecated .. )
 ELSE (WIN32)
-    set(MKFAT_BINARY ${PROJECT_SOURCE_DIR}/mkfat/build/Debug/mkfat)
+    set(MKFAT_BINARY ${PROJECT_SOURCE_DIR}/mkfat/build/mkfat)
+    set(MKFAT_CMAKE_COMMAND cmake -Wno-deprecated -G "Ninja" .. )
 ENDIF (WIN32)
 
 file(MAKE_DIRECTORY ${PROJECT_SOURCE_DIR}/mkfat/build)
 add_custom_command(
     OUTPUT ${MKFAT_BINARY}
-    COMMAND cmake -Wno-deprecated .. 
+    COMMAND ${MKFAT_CMAKE_COMMAND}
     WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/mkfat/build
     COMMAND cmake --build . 
     WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/mkfat/build)
