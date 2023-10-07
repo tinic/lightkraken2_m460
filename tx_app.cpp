@@ -191,22 +191,7 @@ start_web_server:
         return;
     }
 
-#if 0
-    fx_media_exFAT_format(&ram_disk,
-                          _fx_ram_driver,         // Driver entry
-                          fs_data,        // RAM disk memory pointer
-                          media_memory,           // Media buffer pointer
-                          sizeof(media_memory),   // Media buffer size
-                          "MY_RAM_DISK",          // Volume Name
-                          1,                      // Number of FATs
-                          0,                      // Hidden sectors
-                          256,                    // Total sectors
-                          512,                    // Sector size
-                          8,                      // exFAT Sectors per cluster
-                          12345,                  // Volume ID
-                          1);                     // Boundary unit
-#endif  // #if 0
-    status =  fx_media_open(&ram_disk, "RAM Disk", _fx_ram_driver, fs_data + 0x9600, media_memory, sizeof(media_memory));
+    status =  fx_media_open(&ram_disk, "RAM Disk", _fx_ram_driver, fs_data, media_memory, sizeof(media_memory));
     if (status) {
         return;
     }
