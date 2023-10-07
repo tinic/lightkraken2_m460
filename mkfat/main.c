@@ -7,6 +7,7 @@
 #include <string.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <time.h>
 
 #ifdef WIN32
 #include "dirent.h"
@@ -196,6 +197,11 @@ int main(int argc, char *argv[]) {
         return 1;  // exit with error code
     }
 
+    clock_t start, end;
+    double cpu_time_used;
+
+    start = clock();  // Get the start time
+
     printf("mkfat generating header and image file...");
 
     const char *source_path = argv[1];
@@ -290,7 +296,11 @@ int main(int argc, char *argv[]) {
         fclose(fp_img);
     }
 
-    printf("mkfat done.");
+    end = clock();  // Get the end time
+
+    cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;  // Calculate the elapsed time in seconds
+
+    printf("mkfat done in %.2f seconds.", cpu_time_used);
 
     return 0;
 }
