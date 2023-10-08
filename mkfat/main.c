@@ -209,7 +209,7 @@ int main(int argc, char *argv[]) {
 
     start = clock();  // Get the start time
 
-    printf("🥓mkfat generating header and image file from source directory...\n");
+    printf("🍳🥓mkfat generating header and image file from source directory...\n");
 
     const char *source_path = argv[1];
     const size_t num_sectors = atoi(argv[2]);
@@ -292,7 +292,7 @@ int main(int argc, char *argv[]) {
     ULONG total_bytes = 0;
     ULONG sector_bytes = 0;
     print_contents(&ram_disk, NULL, &total_bytes, &sector_bytes);
-    printf("total bytes on disk: %d bytes (%d actual sector bytes)\n", total_bytes, sector_bytes);
+    printf("total bytes on disk: %d bytes (%d actual sector bytes)\n", (int)total_bytes, (int)sector_bytes);
 
     fx_media_close(&ram_disk);
 
@@ -312,7 +312,7 @@ int main(int argc, char *argv[]) {
 
     cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;  // Calculate the elapsed time in seconds
 
-    printf("🥓mkfat done in %.2f seconds.\n", cpu_time_used);
+    printf("🍳🥓mkfat done in %.2f seconds.\n", cpu_time_used);
 
     return 0;
 }
