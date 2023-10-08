@@ -171,7 +171,7 @@ include_directories(${PROJECT_SOURCE_DIR}/support/emac)
 include_directories(${BSP_DIR}/Library/Device/Nuvoton/m460/Include)
 include_directories(${BSP_DIR}/Library/CMSIS/Include)
 include_directories(${BSP_DIR}/Library/StdDriver/inc)
-include_directories(${LWJSON_DIR}/lwjson/lwjson/src/include)
+include_directories(${LWJSON_DIR}/lwjson/src/include)
 include_directories(${FLASHDB_DIR}/inc)
 include_directories(${FLASHDB_DIR}/port/fal/inc)
 
