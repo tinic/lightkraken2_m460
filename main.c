@@ -127,6 +127,12 @@ void SYS_Lightkraken_Init()
     UART0->LINE = UART_PARITY_NONE | UART_STOP_BIT_1 | UART_WORD_LEN_8;
     UART0->BAUD = UART_BAUD_MODE2 | UART_BAUD_MODE2_DIVIDER(__HXT, 115200);
 
+    /*---------------------------------------------------------------------------------------------------------*/
+    /* Init Flash                                                                                              */
+    /*---------------------------------------------------------------------------------------------------------*/
+    FMC_ENABLE_ISP();
+    FMC_ENABLE_AP_UPDATE();
+
     /* Lock protected registers */
     SYS_LockReg();
 }

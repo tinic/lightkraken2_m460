@@ -10,3 +10,9 @@
 [submodule "m460bsp"]
 	path = m460bsp
 	url = https://github.com/tinic/m460bsp.git
+[submodule "lwjson"]
+	path = lwjson
+	url = https://github.com/MaJerle/lwjson.git
+[submodule "FlashDB"]
+	path = FlashDB
+	url = https://github.com/armink/FlashDB.git

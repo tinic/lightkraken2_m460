@@ -33,6 +33,8 @@ set(BSP_DIR ${PROJECT_SOURCE_DIR}/m460bsp)
 set(THREADX_DIR ${PROJECT_SOURCE_DIR}/threadx)
 set(FILEX_DIR ${PROJECT_SOURCE_DIR}/filex)
 set(NETXDUO_DIR ${PROJECT_SOURCE_DIR}/netxduo)
+set(LWJSON_DIR ${PROJECT_SOURCE_DIR}/lwjson)
+set(FLASHDB_DIR ${PROJECT_SOURCE_DIR}/FlashDB)
 
 set(LD_SCRIPT ${PROJECT_SOURCE_DIR}/support/gcc_arm_512k.ld)
 
@@ -123,6 +125,16 @@ add_executable(${PROJECT_NAME}.elf
     ${PROJECT_SOURCE_DIR}/support/emac/nx_m460_eth_driver.c
     ${BSP_DIR}/Library/Device/Nuvoton/m460/Source/GCC/startup_M460.S
     ${BSP_DIR}/Library/Device/Nuvoton/m460/Source/system_m460.c
+    ${LWJSON_DIR}/lwjson/src/lwjson/lwjson.c
+    ${LWJSON_DIR}/lwjson/src/lwjson/lwjson_stream.c
+    ${LWJSON_DIR}/lwjson/src/lwjson/lwjson_debug.c
+    ${FLASHDB_DIR}/src/fdb_kvdb.c
+    ${FLASHDB_DIR}/src/fdb_utils.c
+    ${FLASHDB_DIR}/src/fdb.c
+    ${FLASHDB_DIR}/port/fal/src/fal_rtt.c
+    ${FLASHDB_DIR}/port/fal/src/fal.c
+    ${FLASHDB_DIR}/port/fal/src/fal_partition.c
+    ${FLASHDB_DIR}/port/fal/src/fal_flash.c
 )
 
 # Generate mkfat tool locally. This is fragile...
@@ -159,6 +171,9 @@ include_directories(${PROJECT_SOURCE_DIR}/support/emac)
 include_directories(${BSP_DIR}/Library/Device/Nuvoton/m460/Include)
 include_directories(${BSP_DIR}/Library/CMSIS/Include)
 include_directories(${BSP_DIR}/Library/StdDriver/inc)
+include_directories(${LWJSON_DIR}/lwjson/lwjson/src/include)
+include_directories(${FLASHDB_DIR}/inc)
+include_directories(${FLASHDB_DIR}/port/fal/inc)
 
 target_include_directories(${PROJECT_NAME}.elf PRIVATE ${CMAKE_BINARY_DIR})
 
@@ -173,6 +188,9 @@ target_link_libraries(${PROJECT_NAME}.elf filex)
 
 add_subdirectory(${NETXDUO_DIR})
 target_link_libraries(${PROJECT_NAME}.elf netxduo)
+
+add_subdirectory(${LWJSON_DIR})
+target_link_libraries(${PROJECT_NAME}.elf lwjson)
 
 # Generate version.h
 find_package(Git)

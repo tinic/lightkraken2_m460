@@ -16,6 +16,7 @@
 
 #pragma GCC diagnostic pop
 
+__attribute__((section(".text#")))
 #include "fs.h"
 
 #define NX_PACKET_SIZE PKT_FRAME_BUF_SIZE
