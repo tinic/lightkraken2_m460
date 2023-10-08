@@ -105,7 +105,7 @@ set(LD_FLAGS
     -Wl,--gc-sections)
 
 set(DEBUG_FLAGS
-    -Og -g)
+    -Og -g3)
 
 set(RELEASE_FLAGS   
     -Os)
