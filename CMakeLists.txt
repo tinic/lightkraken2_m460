@@ -189,9 +189,6 @@ target_link_libraries(${PROJECT_NAME}.elf filex)
 add_subdirectory(${NETXDUO_DIR})
 target_link_libraries(${PROJECT_NAME}.elf netxduo)
 
-add_subdirectory(${LWJSON_DIR})
-target_link_libraries(${PROJECT_NAME}.elf lwjson)
-
 # Generate version.h
 find_package(Git)
 
