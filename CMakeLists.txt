@@ -116,7 +116,9 @@ set(DUMP_FILE ${PROJECT_BINARY_DIR}/${PROJECT_NAME}.S)
 
 add_executable(${PROJECT_NAME}.elf 
     ${PROJECT_SOURCE_DIR}/main.c
-    ${PROJECT_SOURCE_DIR}/tx_app.cpp
+    ${PROJECT_SOURCE_DIR}/app.cpp
+    ${PROJECT_SOURCE_DIR}/network.cpp
+    ${PROJECT_SOURCE_DIR}/webserver.cpp
     ${PROJECT_SOURCE_DIR}/support/stubs.c
     ${PROJECT_SOURCE_DIR}/support/tx_initialize_low_level.c
     ${PROJECT_SOURCE_DIR}/support/emac/synopGMAC_Dev.c
@@ -166,6 +168,7 @@ add_custom_command(
     DEPENDS ${VUE3_FILES} ${MKFAT_BINARY})
 target_sources(${PROJECT_NAME}.elf PRIVATE fs.h)
 
+include_directories(${PROJECT_SOURCE_DIR})
 include_directories(${PROJECT_SOURCE_DIR}/support)
 include_directories(${PROJECT_SOURCE_DIR}/support/emac)
 include_directories(${BSP_DIR}/Library/Device/Nuvoton/m460/Include)
