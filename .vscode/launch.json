@@ -15,13 +15,11 @@
                 "./numicro_m4.cfg"
             ],
             "openOCDLaunchCommands": ["adapter speed 12000"],
-            "preLaunchTask": "install",
+            "preLaunchTask": "upload",
             "openOCDPreConfigLaunchCommands": ["gdb_breakpoint_override hard"],
             "showDevDebugOutput": "raw",
             "overrideLaunchCommands": [
                 "interpreter-exec console \"monitor reset halt\"",
-                //'target-download',
-                //'interpreter-exec console \"monitor reset halt\"',
                 "-enable-pretty-printing"
             ],
         }
