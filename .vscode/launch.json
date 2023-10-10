@@ -15,7 +15,7 @@
                 "./numicro_m4.cfg"
             ],
             "openOCDLaunchCommands": ["adapter speed 12000"],
-            "preLaunchTask": "install",
+            "preLaunchTask": "upload",
             "openOCDPreConfigLaunchCommands": ["gdb_breakpoint_override hard"],
             "showDevDebugOutput": "raw",
             "overrideLaunchCommands": [

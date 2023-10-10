@@ -1,12 +1,10 @@
 {
-    // See https://go.microsoft.com/fwlink/?LinkId=733558
-    // for the documentation about the tasks.json format
     "version": "2.0.0",
     "tasks": [
       {
-        "label": "install",
+        "label": "compile",
         "type": "shell",
-        "command": "ninja install",
+        "command": "ninja",
         "options": {
           "cwd": "${workspaceRoot}/build"
         },
@@ -15,6 +13,34 @@
             "close": true,
             "clear": true
         }
-      }
+      },
+      {
+        "windows": {
+        },
+        "osx": {
+        },
+        "linux": {
+        },
+        "label": "upload",
+        "type": "shell",
+        "command": "./openocd.exe",
+        "args": [
+          "-f", "./stlink.cfg",
+          "-f", "./numicro_m4.cfg",
+          "-c", "adapter speed 12000",
+          "-c", "program ../build/lightkraken2.bin 0x00000000 verify exit"
+        ],
+        "options": {
+          "cwd": "${workspaceRoot}/openocd"
+        },
+        "problemMatcher": [],
+        "presentation": {
+            "close": true,
+            "clear": true
+        },
+        "dependsOn": [
+          "compile"
+        ]
+        }
     ]
 }

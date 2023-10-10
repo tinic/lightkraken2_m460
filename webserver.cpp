@@ -13,6 +13,29 @@ WebServer &WebServer::instance() {
 void WebServer::init() {
 }
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wwrite-strings"
+
+UINT request_notify(NX_HTTP_SERVER *server_ptr, UINT request_type, CHAR *resource, NX_PACKET *packet_ptr)
+{
+    if (strcmp(resource, "/settings") == 0) {
+        switch(request_type) {
+            case NX_HTTP_SERVER_GET_REQUEST: {
+                nx_http_server_callback_response_send_extended(server_ptr, "HTTP/1.0 404 ", 12, "NetX HTTP Server unable to find file: ", 38, resource, 9);
+                return(NX_HTTP_CALLBACK_COMPLETED);
+            }
+            case NX_HTTP_SERVER_POST_REQUEST:
+            case NX_HTTP_SERVER_PUT_REQUEST: {
+                nx_http_server_callback_response_send_extended(server_ptr, "HTTP/1.0 404 ", 12, "NetX HTTP Server unable to find file: ", 38, resource, 9);
+                return(NX_HTTP_CALLBACK_COMPLETED);
+            }
+        }
+    }
+    return(NX_SUCCESS);
+}
+
+#pragma GCC diagnostic pop
+
 uint8_t *WebServer::setup(uint8_t *pointer) {
     UINT status;
 
@@ -23,7 +46,7 @@ uint8_t *WebServer::setup(uint8_t *pointer) {
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wwrite-strings"
 
-    status = nx_http_server_create(&http_server, "WebServer", Network::instance().ip(), &ram_disk, pointer, http_server_stack_size, Network::instance().pool(), NX_NULL, NX_NULL);
+    status = nx_http_server_create(&http_server, "WebServer", Network::instance().ip(), &ram_disk, pointer, http_server_stack_size, Network::instance().pool(), NX_NULL, request_notify);
     pointer = pointer + http_server_stack_size;
     if (status) {
         goto fail;
