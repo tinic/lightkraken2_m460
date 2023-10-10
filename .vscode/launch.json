@@ -20,8 +20,6 @@
             "showDevDebugOutput": "raw",
             "overrideLaunchCommands": [
                 "interpreter-exec console \"monitor reset halt\"",
-                //'target-download',
-                //'interpreter-exec console \"monitor reset halt\"',
                 "-enable-pretty-printing"
             ],
         }

@@ -39,7 +39,7 @@ set(FLASHDB_DIR ${PROJECT_SOURCE_DIR}/FlashDB)
 set(LD_SCRIPT ${PROJECT_SOURCE_DIR}/support/gcc_arm_512k.ld)
 
 set(CC_FLAGS
-    -flto=auto
+    -flto=1
     -mcpu=cortex-m4
     -Wformat=2
     -Wformat-overflow
@@ -93,7 +93,7 @@ set(CXX_FLAGS
 set(LD_FLAGS
     -T${LD_SCRIPT}
     -u _printf_float
-    -flto=auto
+    -flto=1
     -specs=nano.specs
     -mcpu=cortex-m4
     -mthumb
