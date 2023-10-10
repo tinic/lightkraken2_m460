@@ -37,6 +37,7 @@ set(LWJSON_DIR ${PROJECT_SOURCE_DIR}/lwjson)
 set(FLASHDB_DIR ${PROJECT_SOURCE_DIR}/FlashDB)
 
 set(LD_SCRIPT ${PROJECT_SOURCE_DIR}/support/gcc_arm_512k.ld)
+set(LD_SCRIPT_BOOTLOADER ${PROJECT_SOURCE_DIR}/support/gcc_arm_512k.ld)
 
 set(CC_FLAGS
     -flto=auto
@@ -90,8 +91,7 @@ set(CXX_FLAGS
     -fno-rtti 
     -fno-exceptions)
 
-set(LD_FLAGS
-    -T${LD_SCRIPT}
+set(LD_FLAGS_COMMON
     -u _printf_float
     -flto=auto
     -specs=nano.specs
@@ -101,7 +101,6 @@ set(LD_FLAGS
     -mfpu=fpv4-sp-d16
     -lm
     -lnosys
-    -Wl,-Map=${PROJECT_BINARY_DIR}/${PROJECT_NAME}.map,--cref
     -Wl,--gc-sections)
 
 set(DEBUG_FLAGS
@@ -110,11 +109,25 @@ set(DEBUG_FLAGS
 set(RELEASE_FLAGS   
     -Os)
 
-set(HEX_FILE ${PROJECT_BINARY_DIR}/${PROJECT_NAME}.hex)
-set(BIN_FILE ${PROJECT_BINARY_DIR}/${PROJECT_NAME}.bin)
-set(DUMP_FILE ${PROJECT_BINARY_DIR}/${PROJECT_NAME}.S)
+set(TARGET_NAME_RUNTIME ${PROJECT_NAME}.elf)
+set(HEX_FILE_RUNTIME ${PROJECT_BINARY_DIR}/${PROJECT_NAME}.hex)
+set(BIN_FILE_RUNTIME ${PROJECT_BINARY_DIR}/${PROJECT_NAME}.bin)
+set(DUMP_FILE_RUNTIME ${PROJECT_BINARY_DIR}/${PROJECT_NAME}.S)
+set(LD_FLAGS_RUNTIME
+    -T${LD_SCRIPT}
+    -Wl,-Map=${PROJECT_BINARY_DIR}/${PROJECT_NAME}.map,--cref
+)
 
-add_executable(${PROJECT_NAME}.elf 
+set(TARGET_NAME_BOOTLOADER ${PROJECT_NAME}_bootloader.elf)
+set(HEX_FILE_BOOTLOADER ${PROJECT_BINARY_DIR}/${PROJECT_NAME}_bootloader.hex)
+set(BIN_FILE_BOOTLOADER ${PROJECT_BINARY_DIR}/${PROJECT_NAME}_bootloader.bin)
+set(DUMP_FILE_BOOTLOADER ${PROJECT_BINARY_DIR}/${PROJECT_NAME}_bootloader.S)
+set(LD_FLAGS_BOOTLOADER
+    -T${LD_SCRIPT}
+    -Wl,-Map=${PROJECT_BINARY_DIR}/${PROJECT_NAME}_bootloader.map,--cref
+)
+
+set(COMMON_SOURCES
     ${PROJECT_SOURCE_DIR}/main.c
     ${PROJECT_SOURCE_DIR}/app.cpp
     ${PROJECT_SOURCE_DIR}/network.cpp
@@ -138,6 +151,9 @@ add_executable(${PROJECT_NAME}.elf
     ${FLASHDB_DIR}/port/fal/src/fal_partition.c
     ${FLASHDB_DIR}/port/fal/src/fal_flash.c
 )
+add_executable(${TARGET_NAME_RUNTIME} ${COMMON_SOURCES})
+add_executable(${TARGET_NAME_BOOTLOADER} ${COMMON_SOURCES})
+target_compile_definitions(${TARGET_NAME_BOOTLOADER} PRIVATE BOOTLOADER)
 
 # Generate mkfat tool locally. This is fragile...
 IF (${CMAKE_HOST_SYSTEM_NAME} STREQUAL  "Windows")
@@ -159,14 +175,22 @@ add_custom_command(
 
 file(GLOB VUE3_FILES
        ${PROJECT_SOURCE_DIR}/vue3/src/*.*)
-message(${VUE3_FILES})
 add_custom_command(
     OUTPUT ${PROJECT_BINARY_DIR}/fs.h
     COMMAND yarn build 
-    COMMAND ${MKFAT_BINARY} ${PROJECT_SOURCE_DIR}/vue3/dist 512 ${PROJECT_BINARY_DIR}/fs.h ${PROJECT_BINARY_DIR}/fs.img
+    COMMAND ${MKFAT_BINARY} ${PROJECT_SOURCE_DIR}/vue3/dist 512 128 ${PROJECT_BINARY_DIR}/fs.h ${PROJECT_BINARY_DIR}/fs.img
     WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/vue3
     DEPENDS ${VUE3_FILES} ${MKFAT_BINARY})
-target_sources(${PROJECT_NAME}.elf PRIVATE fs.h)
+target_sources(${TARGET_NAME_RUNTIME} PRIVATE fs.h)
+
+file(GLOB FSBL_FILES
+       ${PROJECT_SOURCE_DIR}/fsbl/*.*)
+add_custom_command(
+    OUTPUT ${PROJECT_BINARY_DIR}/fsbl.h
+    COMMAND ${MKFAT_BINARY} ${PROJECT_SOURCE_DIR}/fsbl 64 64 ${PROJECT_BINARY_DIR}/fsbl.h ${PROJECT_BINARY_DIR}/fsbl.img
+    WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/fsbl
+    DEPENDS ${FSBL_FILES} ${MKFAT_BINARY})
+target_sources(${TARGET_NAME_BOOTLOADER} PRIVATE fsbl.h)
 
 include_directories(${PROJECT_SOURCE_DIR})
 include_directories(${PROJECT_SOURCE_DIR}/support)
@@ -178,28 +202,24 @@ include_directories(${LWJSON_DIR}/lwjson/src/include)
 include_directories(${FLASHDB_DIR}/inc)
 include_directories(${FLASHDB_DIR}/port/fal/inc)
 
-target_include_directories(${PROJECT_NAME}.elf PRIVATE ${CMAKE_BINARY_DIR})
+target_include_directories(${TARGET_NAME_RUNTIME} PRIVATE ${CMAKE_BINARY_DIR})
+target_include_directories(${TARGET_NAME_BOOTLOADER} PRIVATE ${CMAKE_BINARY_DIR})
 
 add_subdirectory(${BSP_DIR}/Library/StdDriver/src)
-target_link_libraries(${PROJECT_NAME}.elf standard_driver)
+target_link_libraries(${TARGET_NAME_RUNTIME} standard_driver)
+target_link_libraries(${TARGET_NAME_BOOTLOADER} standard_driver)
 
 add_subdirectory(${THREADX_DIR})
-target_link_libraries(${PROJECT_NAME}.elf threadx)
+target_link_libraries(${TARGET_NAME_RUNTIME} threadx)
+target_link_libraries(${TARGET_NAME_BOOTLOADER} threadx)
 
 add_subdirectory(${FILEX_DIR})
-target_link_libraries(${PROJECT_NAME}.elf filex)
+target_link_libraries(${TARGET_NAME_RUNTIME} filex)
+target_link_libraries(${TARGET_NAME_BOOTLOADER} filex)
 
 add_subdirectory(${NETXDUO_DIR})
-target_link_libraries(${PROJECT_NAME}.elf netxduo)
-
-# Generate version.h
-find_package(Git)
-
-execute_process(COMMAND ${GIT_EXECUTABLE} rev-parse --short HEAD WORKING_DIRECTORY ${PROJECT_SOURCE_DIR} OUTPUT_VARIABLE GIT_SHORT_SHA OUTPUT_STRIP_TRAILING_WHITESPACE)
-execute_process(COMMAND ${GIT_EXECUTABLE} rev-list HEAD --count WORKING_DIRECTORY ${PROJECT_SOURCE_DIR} OUTPUT_VARIABLE GIT_REV_COUNT OUTPUT_STRIP_TRAILING_WHITESPACE)
-execute_process(COMMAND ${GIT_EXECUTABLE} show -s --format=%ad HEAD --date=iso-strict WORKING_DIRECTORY ${PROJECT_SOURCE_DIR} OUTPUT_VARIABLE GIT_COMMIT_DATE OUTPUT_STRIP_TRAILING_WHITESPACE)
-
-configure_file("${PROJECT_SOURCE_DIR}/version.h.in" "${CMAKE_BINARY_DIR}/version.h" @ONLY)
+target_link_libraries(${TARGET_NAME_RUNTIME} netxduo)
+target_link_libraries(${TARGET_NAME_BOOTLOADER} netxduo)
 
 target_compile_definitions(standard_driver PRIVATE ${DEFINITIONS})
 target_compile_options(standard_driver PRIVATE "$<$<COMPILE_LANGUAGE:C>:${CC_FLAGS}>")
@@ -222,21 +242,44 @@ target_compile_options(netxduo PRIVATE "$<$<COMPILE_LANGUAGE:C>:${CC_FLAGS}>")
 target_compile_options(netxduo PRIVATE "$<$<CONFIG:DEBUG>:${DEBUG_FLAGS}>")
 target_compile_options(netxduo PRIVATE "$<$<CONFIG:RELEASE>:${RELEASE_FLAGS}>")
 
-target_compile_definitions(${PROJECT_NAME}.elf PRIVATE ${DEFINITIONS})
-target_link_options(${PROJECT_NAME}.elf PRIVATE ${LD_FLAGS})
-target_compile_options(${PROJECT_NAME}.elf PRIVATE "$<$<COMPILE_LANGUAGE:C>:${CC_FLAGS}>")
-target_compile_options(${PROJECT_NAME}.elf PRIVATE "$<$<COMPILE_LANGUAGE:CXX>:${CXX_FLAGS}>")
-target_compile_options(${PROJECT_NAME}.elf PRIVATE "$<$<CONFIG:DEBUG>:${DEBUG_FLAGS}>")
-target_compile_options(${PROJECT_NAME}.elf PRIVATE "$<$<CONFIG:RELEASE>:${RELEASE_FLAGS}>")
+target_compile_definitions(${TARGET_NAME_RUNTIME} PRIVATE ${DEFINITIONS})
+target_link_options(${TARGET_NAME_RUNTIME} PRIVATE ${LD_FLAGS_COMMON})
+target_link_options(${TARGET_NAME_RUNTIME} PRIVATE ${LD_FLAGS_RUNTIME})
+target_compile_options(${TARGET_NAME_RUNTIME} PRIVATE "$<$<COMPILE_LANGUAGE:C>:${CC_FLAGS}>")
+target_compile_options(${TARGET_NAME_RUNTIME} PRIVATE "$<$<COMPILE_LANGUAGE:CXX>:${CXX_FLAGS}>")
+target_compile_options(${TARGET_NAME_RUNTIME} PRIVATE "$<$<CONFIG:DEBUG>:${DEBUG_FLAGS}>")
+target_compile_options(${TARGET_NAME_RUNTIME} PRIVATE "$<$<CONFIG:RELEASE>:${RELEASE_FLAGS}>")
 
-add_custom_command(TARGET ${PROJECT_NAME}.elf POST_BUILD
-    COMMAND ${CMAKE_OBJDUMP} -D $<TARGET_FILE:${PROJECT_NAME}.elf> > ${DUMP_FILE}
-    COMMAND ${CMAKE_OBJCOPY} -O binary $<TARGET_FILE:${PROJECT_NAME}.elf> ${BIN_FILE}
-    COMMAND ${CMAKE_OBJCOPY} -O ihex -R .eeprom -R .fuse -R .lock -R .signature $<TARGET_FILE:${PROJECT_NAME}.elf> ${HEX_FILE}
-    COMMAND ${CMAKE_SIZE} ${PROJECT_NAME}.elf
-    COMMENT "Building ${HEX_FILE} \nBuilding ${BIN_FILE}")
+target_compile_definitions(${TARGET_NAME_BOOTLOADER} PRIVATE ${DEFINITIONS})
+target_link_options(${TARGET_NAME_BOOTLOADER} PRIVATE ${LD_FLAGS_COMMON})
+target_link_options(${TARGET_NAME_BOOTLOADER} PRIVATE ${LD_FLAGS_RUNTIME})
+target_compile_options(${TARGET_NAME_BOOTLOADER} PRIVATE "$<$<COMPILE_LANGUAGE:C>:${CC_FLAGS}>")
+target_compile_options(${TARGET_NAME_BOOTLOADER} PRIVATE "$<$<COMPILE_LANGUAGE:CXX>:${CXX_FLAGS}>")
+target_compile_options(${TARGET_NAME_BOOTLOADER} PRIVATE "$<$<CONFIG:DEBUG>:${DEBUG_FLAGS}>")
+target_compile_options(${TARGET_NAME_BOOTLOADER} PRIVATE "$<$<CONFIG:RELEASE>:${RELEASE_FLAGS}>")
 
-message(${PROJECT_SOURCE_DIR})
+# Generate version.h
+find_package(Git)
+
+execute_process(COMMAND ${GIT_EXECUTABLE} rev-parse --short HEAD WORKING_DIRECTORY ${PROJECT_SOURCE_DIR} OUTPUT_VARIABLE GIT_SHORT_SHA OUTPUT_STRIP_TRAILING_WHITESPACE)
+execute_process(COMMAND ${GIT_EXECUTABLE} rev-list HEAD --count WORKING_DIRECTORY ${PROJECT_SOURCE_DIR} OUTPUT_VARIABLE GIT_REV_COUNT OUTPUT_STRIP_TRAILING_WHITESPACE)
+execute_process(COMMAND ${GIT_EXECUTABLE} show -s --format=%ad HEAD --date=iso-strict WORKING_DIRECTORY ${PROJECT_SOURCE_DIR} OUTPUT_VARIABLE GIT_COMMIT_DATE OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+configure_file("${PROJECT_SOURCE_DIR}/version.h.in" "${CMAKE_BINARY_DIR}/version.h" @ONLY)
+
+add_custom_command(TARGET ${TARGET_NAME_RUNTIME} POST_BUILD
+    COMMAND ${CMAKE_OBJDUMP} -D $<TARGET_FILE:${TARGET_NAME_RUNTIME}> > ${DUMP_FILE_RUNTIME}
+    COMMAND ${CMAKE_OBJCOPY} -O binary $<TARGET_FILE:${TARGET_NAME_RUNTIME}> ${BIN_FILE_RUNTIME}
+    COMMAND ${CMAKE_OBJCOPY} -O ihex -R .eeprom -R .fuse -R .lock -R .signature $<TARGET_FILE:${TARGET_NAME_RUNTIME}> ${HEX_FILE_RUNTIME}
+    COMMAND ${CMAKE_SIZE} ${TARGET_NAME_RUNTIME}
+    COMMENT ("Building ${HEX_FILE_RUNTIME}\\nBuilding ${BIN_FILE_RUNTIME}"))
+
+add_custom_command(TARGET ${TARGET_NAME_BOOTLOADER} POST_BUILD
+    COMMAND ${CMAKE_OBJDUMP} -D $<TARGET_FILE:${TARGET_NAME_BOOTLOADER}> > ${DUMP_FILE_BOOTLOADER}
+    COMMAND ${CMAKE_OBJCOPY} -O binary $<TARGET_FILE:${TARGET_NAME_BOOTLOADER}> ${BIN_FILE_BOOTLOADER}
+    COMMAND ${CMAKE_OBJCOPY} -O ihex -R .eeprom -R .fuse -R .lock -R .signature $<TARGET_FILE:${TARGET_NAME_BOOTLOADER}> ${HEX_FILE_BOOTLOADER}
+    COMMAND ${CMAKE_SIZE} ${TARGET_NAME_BOOTLOADER}
+    COMMENT ("Building ${HEX_FILE_BOOTLOADER}\\nBuilding ${BIN_FILE_BOOTLOADER}"))
 
 set(PROGRAM_CMD "./openocd -f ./stlink.cfg -f ./numicro_m4.cfg -c \"adapter speed 12000\" -c \"program ${PROJECT_BINARY_DIR}/${PROJECT_NAME}.bin ${BASE_ADDRESS} verify reset exit\"")
 install(CODE "execute_process(COMMAND ${PROGRAM_CMD} WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/openocd)")

@@ -63,14 +63,17 @@ uint8_t *Network::setup(uint8_t *pointer) {
     if (status)
         goto fail;
 
+#ifndef BOOTLOADER
     status = nx_udp_enable(&client_ip);
     if (status)
         goto fail;
+#endif  // #ifndef BOOTLOADER
 
     status = nx_tcp_enable(&client_ip);
     if (status)
         goto fail;
 
+#ifndef BOOTLOADER
     status = nx_igmp_enable(&client_ip);
     if (status)
         goto fail;
@@ -78,6 +81,7 @@ uint8_t *Network::setup(uint8_t *pointer) {
     status = nxd_ipv6_enable(&client_ip);
     if (status)
         goto fail;
+#endif  // #ifndef BOOTLOADER
 
     status = nx_ip_address_change_notify(&client_ip, client_ip_address_changed, 0);
     if (status)

@@ -17,7 +17,6 @@
 
 #include "fx_api.h"
 
-
 extern void _fx_ram_driver(FX_MEDIA *media_ptr);
 static unsigned char media_memory[512] = { 0 };
 static FX_MEDIA ram_disk = { 0 };
@@ -192,11 +191,20 @@ void print_contents(FX_MEDIA *media, CHAR *default_dir, ULONG *total_bytes, ULON
     }
 }
 
+int strToBool(const char* str) {
+    if (strcasecmp(str, "YES") == 0 || 
+        strcasecmp(str, "TRUE") == 0 || 
+        strcasecmp(str, "1") == 0) {
+        return 1;
+    }
+    return 0;
+}
+
 int main(int argc, char *argv[]) {
 
 
-    if (argc != 5) {
-        fprintf(stderr, "Usage: %s <source_path> <num_sectors> <header_file> <image_file>\n", argv[0]);
+    if (argc != 6) {
+        fprintf(stderr, "Usage: %s <source_path> <num_sectors> <sector_size> <header_file> <image_file>\n", argv[0]);
         return 1;  // exit with error code
     }
 
@@ -213,8 +221,9 @@ int main(int argc, char *argv[]) {
 
     const char *source_path = argv[1];
     const size_t num_sectors = atoi(argv[2]);
-    const char *header_file = argv[3];
-    const char *image_file = argv[4];
+    const size_t sector_size = atoi(argv[3]);
+    const char *header_file = argv[4];
+    const char *image_file = argv[5];
 
     if (num_sectors <= 0) {
         printf("Invalid num_sectors!\n");
@@ -224,11 +233,10 @@ int main(int argc, char *argv[]) {
     fx_system_initialize();
 
     UINT status;
-
 #if 1
-#define SECTOR_SIZE 128
-    unsigned char *fs_data = malloc(num_sectors * SECTOR_SIZE);
-    memset(fs_data, 0, num_sectors * SECTOR_SIZE);
+    const size_t fs_size = num_sectors * sector_size;
+    unsigned char *fs_data = malloc(fs_size);
+    memset(fs_data, 0, fs_size);
     status = fx_media_format(&ram_disk,
         _fx_ram_driver,         // Driver entry
         fs_data,                // RAM disk memory pointer
@@ -239,7 +247,7 @@ int main(int argc, char *argv[]) {
         32,                     // Directory Entries
         0,                      // Hidden sectors
         (ULONG)num_sectors,     // Total sectors
-        SECTOR_SIZE,                    // Sector size
+        (ULONG)sector_size,     // Sector size
         1,                      // Sectors per cluster
         1,                      // Heads
         1);                     // Sectors per track
@@ -248,9 +256,9 @@ int main(int argc, char *argv[]) {
         return -1;
     }
 #else  // #if 1
-#define SECTOR_SIZE 512
-    unsigned char *fs_data = malloc(num_sectors * SECTOR_SIZE);
-    memset(fs_data, 0, num_sectors * SECTOR_SIZE);
+    const size_t fs_size = num_sectors * sector_size;
+    unsigned char *fs_data = malloc(fs_size);
+    memset(fs_data, 0, fs_size);
     status = fx_media_exFAT_format(&ram_disk,
         _fx_ram_driver,         // Driver entry
         fs_data,                // RAM disk memory pointer
@@ -260,7 +268,7 @@ int main(int argc, char *argv[]) {
         1,                      // Number of FATs
         0,                      // Hidden sectors
         (ULONG)num_sectors,     // Total sectors
-        SECTOR_SIZE,            // Sector size
+        (ULONG)sector_size,     // Sector size
         8,                      // exFAT Sectors per cluster
         12345,                  // Volume ID
         1);                     // Boundary unit
@@ -298,13 +306,13 @@ int main(int argc, char *argv[]) {
 
     FILE *fp_header = fopen(header_file, "wb");
     if (fp_header) {
-        fwriteAsCHeader(fp_header, fs_data, num_sectors * SECTOR_SIZE);
+        fwriteAsCHeader(fp_header, fs_data, num_sectors * sector_size);
         fclose(fp_header);
     }
 
     FILE *fp_img = fopen(image_file, "wb");
     if (fp_img) {
-        fwrite(fs_data, 1, num_sectors * SECTOR_SIZE, fp_img);
+        fwrite(fs_data, 1, num_sectors * sector_size, fp_img);
         fclose(fp_img);
     }
 
