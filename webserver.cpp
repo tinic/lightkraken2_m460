@@ -1,5 +1,6 @@
 #include "webserver.h"
 #include "network.h"
+#include "settingsdb.h"
 #include "lwjson/lwjson.h"
 
 #pragma GCC diagnostic push
@@ -26,27 +27,30 @@ void WebServer::jsonStreamSettings(lwjson_stream_parser_t* jsp, lwjson_stream_ty
     if (jsp == NULL) {
         return;
     }
+
+    // Top level values only, no nesting
     if (jsp->stack_pos != 2) {
         return;
     }
 
     const char *key_name = jsp->stack[jsp->stack_pos-1].meta.name;
     const char *data_buf = jsp->data.str.buff;
+
     switch(type) {
         case LWJSON_STREAM_TYPE_STRING:
-            printf("string key<%s> value<%s>\n", key_name, data_buf);
+            SettingsDB::instance().setString(key_name, data_buf);
         break;
         case LWJSON_STREAM_TYPE_TRUE:
-            printf("true key<%s>\n", key_name);
+            SettingsDB::instance().setBool(key_name, true);
         break;
         case LWJSON_STREAM_TYPE_FALSE:
-            printf("false key<%s>\n", key_name);
+            SettingsDB::instance().setBool(key_name, false);
         break;
         case LWJSON_STREAM_TYPE_NULL:
-            printf("null key<%s>\n", key_name);
+            SettingsDB::instance().setNull(key_name);
         break;
         case LWJSON_STREAM_TYPE_NUMBER: {
-            printf("number key<%s> value<%s>\n", key_name, data_buf);
+            SettingsDB::instance().setNumber(key_name, strtof(data_buf, NULL));
         } break;
         case LWJSON_STREAM_TYPE_NONE:
         case LWJSON_STREAM_TYPE_KEY:
@@ -55,6 +59,7 @@ void WebServer::jsonStreamSettings(lwjson_stream_parser_t* jsp, lwjson_stream_ty
         case LWJSON_STREAM_TYPE_ARRAY:
         case LWJSON_STREAM_TYPE_ARRAY_END:
         default:
+        // not supported
         break;
     }
 }

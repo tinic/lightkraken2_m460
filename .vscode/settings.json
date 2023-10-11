@@ -12,6 +12,13 @@
         "nx_m460_eth_driver.h": "c",
         "string_view": "c",
         "array": "c",
-        "initializer_list": "c"
+        "initializer_list": "c",
+        "*.tcc": "cpp",
+        "functional": "cpp",
+        "ratio": "cpp",
+        "system_error": "cpp",
+        "tuple": "cpp",
+        "type_traits": "cpp",
+        "utility": "cpp"
     },
 }

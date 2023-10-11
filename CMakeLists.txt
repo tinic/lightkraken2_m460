@@ -131,7 +131,9 @@ set(COMMON_SOURCES
     ${PROJECT_SOURCE_DIR}/main.c
     ${PROJECT_SOURCE_DIR}/app.cpp
     ${PROJECT_SOURCE_DIR}/network.cpp
+    ${PROJECT_SOURCE_DIR}/settingsdb.cpp
     ${PROJECT_SOURCE_DIR}/webserver.cpp
+    ${PROJECT_SOURCE_DIR}/support/fal_cfg.c
     ${PROJECT_SOURCE_DIR}/support/stubs.c
     ${PROJECT_SOURCE_DIR}/support/tx_initialize_low_level.c
     ${PROJECT_SOURCE_DIR}/support/emac/synopGMAC_Dev.c
