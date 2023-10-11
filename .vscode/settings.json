@@ -19,6 +19,7 @@
         "system_error": "cpp",
         "tuple": "cpp",
         "type_traits": "cpp",
-        "utility": "cpp"
+        "utility": "cpp",
+        "nx_user.h": "c"
     },
 }

@@ -47,6 +47,10 @@ uint8_t *Network::setup(uint8_t *pointer) {
     if (status)
         goto fail;
 
+    status = nx_ip_interface_mtu_set(&client_ip, 0, MAX_ETHERNET_PAYLOAD);
+    if (status)
+        goto fail;
+
     status = nx_auto_ip_create(&auto_ip, "AutoIP", &client_ip, pointer, auto_ip_stack_size, 1);
     pointer = pointer + auto_ip_stack_size;
     if (status)

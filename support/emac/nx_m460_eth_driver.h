@@ -49,7 +49,7 @@ extern   "C" {
 #define NX_DRIVER_ETHERNET_ARP                  0x0806
 #define NX_DRIVER_ETHERNET_RARP                 0x8035
 
-#define NX_DRIVER_ETHERNET_MTU                  1514
+#define NX_DRIVER_ETHERNET_MTU                  1500
 #define NX_DRIVER_ETHERNET_FRAME_SIZE           14
 
 #define NX_DRIVER_DEFERRED_PACKET_RECEIVED      1

@@ -67,6 +67,7 @@
 #include "nx_user.h"
 #endif
 
+#define NX_HTTP_MULTIPART_ENABLE 1
 
 /* Default to little endian, since this is what most ARM targets are.  */
 

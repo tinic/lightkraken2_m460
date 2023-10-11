@@ -30,6 +30,8 @@ private:
     UINT postRequestJson(NX_HTTP_SERVER *server_ptr, UINT request_type, CHAR *resource, NX_PACKET *packet_ptr, lwjson_stream_parser_callback_fn callback);
 #endif  // #ifndef BOOTLOADER
 
+    UINT postRequestUpload(NX_HTTP_SERVER *server_ptr, UINT request_type, CHAR *resource, NX_PACKET *packet_ptr);
+
     static UINT requestNotifyCallback(NX_HTTP_SERVER *server_ptr, UINT request_type, CHAR *resource, NX_PACKET *packet_ptr);
     UINT requestNotify(NX_HTTP_SERVER *server_ptr, UINT request_type, CHAR *resource, NX_PACKET *packet_ptr);
 

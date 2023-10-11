@@ -12,6 +12,8 @@ void thread_startup_entry(ULONG thread_input) {
     if (!WebServer::instance().start()) {
         return;
     }
+
+    tx_thread_relinquish();
 }
 
 extern "C" void tx_application_define(void *first_unused_memory);
