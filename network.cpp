@@ -4,7 +4,7 @@
 #include "nx_m460_eth_driver.h"
 
 #define NX_PACKET_SIZE PKT_FRAME_BUF_SIZE
-#define NX_PACKET_POOL_SIZE PKT_FRAME_BUF_SIZE * TRANSMIT_DESC_SIZE
+#define NX_PACKET_POOL_SIZE PKT_FRAME_BUF_SIZE * RECEIVE_DESC_SIZE
 
 Network &Network::instance() {
     static Network network;
