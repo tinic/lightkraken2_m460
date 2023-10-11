@@ -17,6 +17,8 @@ public:
     void setNumber(const char *key, float value);
     void setNull(const char *key);
 
+    void dump();
+
 private:
     void init();
     bool initialized = false;

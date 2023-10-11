@@ -25,15 +25,9 @@
 #ifndef _FAL_CFG_H_
 #define _FAL_CFG_H_
 
-//#include <rtconfig.h>
-//#include <board.h>
-
 //#define FAL_DEBUG 1
 #define FAL_PART_HAS_TABLE_CFG
 #define NOR_FLASH_DEV_NAME "norflash0"
-
-//#define FAL_PART_TABLE_FLASH_DEV_NAME NOR_FLASH_DEV_NAME
-//#define FAL_PART_TABLE_END_OFFSET      65536
 
 #define FLASH_DB_LENGTH (128*1024)
 #define FLASH_DB_START_ADDRESS (0x100000-FLASH_DB_LENGTH)

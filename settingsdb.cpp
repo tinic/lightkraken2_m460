@@ -43,6 +43,38 @@ void SettingsDB::unlock() {
     __disable_irq();
 }
 
+void SettingsDB::dump() {
+    struct fdb_kv_iterator iterator {};
+
+    fdb_kv_iterator_init(&kvdb, &iterator);
+    while (fdb_kv_iterate(&kvdb, &iterator)) {
+
+        fdb_kv_t cur_kv = &(iterator.curr_kv);
+        //size_t data_size = (size_t)cur_kv->value_len;
+
+        printf("%s\n", cur_kv->name);
+        size_t name_len = strlen(cur_kv->name);
+        if (name_len > 2 && cur_kv->name[name_len-2] == '@') {
+            switch(cur_kv->name[name_len-1]) {
+                case 's':
+                case 'b':
+                case 'f':
+                case 'n':
+                break;
+                default:
+                break;
+            }
+        }
+
+/*      rt_strncpy(kv_tbl[index].name, cur_kv->name, 32);
+        kv_tbl[index].saved_data_size = data_size;
+        kv_tbl[index].addr = cur_kv->addr.start;
+        struct fdb_blob fdb_blob;
+        fdb_blob_read((fdb_db_t)db, fdb_kv_to_blob(cur_kv, fdb_blob_make(&fdb_blob, &kv_tbl[index].value, data_size)));
+*/
+    }
+}
+
 size_t SettingsDB::getString(const char *key, char *value, size_t maxlen) {
     char *keyS = reinterpret_cast<char *>(alloca(strlen(key)+2));
     strcpy(keyS, key);

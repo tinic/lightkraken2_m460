@@ -134,6 +134,7 @@ UINT WebServer::requestNotify(NX_HTTP_SERVER *server_ptr, UINT request_type, CHA
     if (strcmp(resource, "/settings") == 0) {
         switch(request_type) {
             case NX_HTTP_SERVER_GET_REQUEST: {
+                SettingsDB::instance().dump();
                 nx_packet_release(packet_ptr);
                 nx_http_server_callback_response_send_extended(server_ptr, NX_HTTP_STATUS_OK, sizeof(NX_HTTP_STATUS_OK)-1, NX_NULL, 0, NX_NULL, 0);
                 return(NX_HTTP_CALLBACK_COMPLETED);
