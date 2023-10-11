@@ -2381,6 +2381,7 @@ static bool _nx_driver_hardware_packet_received()
         if (packet_ptr) {
             count ++; 
             total_count ++;
+//            printf("_nx_driver_hardware_packet_received len:%08x(%d)\n", len, len);
             memcpy(packet_ptr->nx_packet_prepend_ptr, (void *)psPktFrame, len);
             _nx_driver_transfer_to_netx(nx_driver_information.nx_driver_information_ip_ptr, packet_ptr);
         } else {

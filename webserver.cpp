@@ -131,23 +131,29 @@ UINT WebServer::postRequestJson(
 
 #endif  // #ifndef BOOTLOADER
 
-
+#ifdef BOOTLOADER
 UINT WebServer::postRequestUpload(
         NX_HTTP_SERVER *server_ptr, 
         UINT request_type, 
         CHAR *resource, 
         NX_PACKET *packet_ptr) {
-    ULONG offset, length;
-    UCHAR buffer[1440];
+
+    ULONG offset = 0, chunk_length = 0, total_length = 0;
+    UCHAR buffer[MAX_ETHERNET_PAYLOAD + 1]; // plus 1 for null termination
     while(nx_http_server_get_entity_header(server_ptr, &packet_ptr, buffer, sizeof(buffer)) == NX_SUCCESS) {
-        while(nx_http_server_get_entity_content(server_ptr, &packet_ptr, &offset, &length) == NX_SUCCESS) {
-            nx_packet_data_extract_offset(packet_ptr, offset, buffer, length, &length);
-            buffer[length] = 0;
+        if (strstr((const char *)buffer, "application/octet-stream") != NULL) {
+            while(nx_http_server_get_entity_content(server_ptr, &packet_ptr, &offset, &chunk_length) == NX_SUCCESS) {
+                nx_packet_data_extract_offset(packet_ptr, offset, buffer, chunk_length, &chunk_length);
+                buffer[chunk_length] = 0;
+                total_length += chunk_length;
+            }
         }
     }
+
     nx_http_server_callback_response_send_extended(server_ptr, NX_HTTP_STATUS_OK, sizeof(NX_HTTP_STATUS_OK)-1, NX_NULL, 0, NX_NULL, 0);
     return(NX_HTTP_CALLBACK_COMPLETED);
 }
+#endif  // #ifdef BOOTLOADER
 
 
 UINT WebServer::requestNotifyCallback(NX_HTTP_SERVER *server_ptr, UINT request_type, CHAR *resource, NX_PACKET *packet_ptr) {
@@ -177,12 +183,14 @@ UINT WebServer::requestNotify(NX_HTTP_SERVER *server_ptr, UINT request_type, CHA
                     jsonStreamSettingsCallback);
             }
 #endif  // #ifndef BOOTLOADER
+#ifdef BOOTLOADER
             if (strcmp(resource, "/upload") == 0) {
                 return postRequestUpload(server_ptr, 
                     request_type, 
                     resource, 
                     packet_ptr);
             }
+#endif  // #ifdef BOOTLOADER
             nx_packet_release(packet_ptr);
             nx_http_server_callback_response_send_extended(server_ptr, NX_HTTP_STATUS_METHOD_NOT_ALLOWED, sizeof(NX_HTTP_STATUS_METHOD_NOT_ALLOWED)-1, NX_NULL, 0, NX_NULL, 0);
             return(NX_HTTP_CALLBACK_COMPLETED);
@@ -264,7 +272,7 @@ void WebServer::APROMDiskDriver(FX_MEDIA *media_ptr)
     }
 
     case FX_DRIVER_BOOT_READ: {
-        UCHAR *source_buffer =  (UCHAR *)media_ptr -> fx_media_driver_info;
+        UCHAR *source_buffer = (UCHAR *)media_ptr -> fx_media_driver_info;
         if ( (source_buffer[0] != (UCHAR)0xEB)  ||
             ((source_buffer[1] != (UCHAR)0x34)  &&
              (source_buffer[1] != (UCHAR)0x76)) ||          /* exFAT jump code.  */
@@ -272,7 +280,7 @@ void WebServer::APROMDiskDriver(FX_MEDIA *media_ptr)
             media_ptr -> fx_media_driver_status =  FX_MEDIA_INVALID;
             return;
         }
-        UINT bytes_per_sector =  _fx_utility_16_unsigned_read(&source_buffer[FX_BYTES_SECTOR]);
+        UINT bytes_per_sector = _fx_utility_16_unsigned_read(&source_buffer[FX_BYTES_SECTOR]);
 #ifdef FX_ENABLE_EXFAT
         if (bytes_per_sector == 0 && (source_buffer[1] == (UCHAR)0x76)) {
             bytes_per_sector = (UINT)(1 << source_buffer[FX_EF_BYTE_PER_SECTOR_SHIFT]);
@@ -282,8 +290,7 @@ void WebServer::APROMDiskDriver(FX_MEDIA *media_ptr)
             media_ptr -> fx_media_driver_status =  FX_BUFFER_ERROR;
             break;
         }
-        _fx_utility_memory_copy(source_buffer, media_ptr -> fx_media_driver_buffer,
-                                bytes_per_sector);
+        _fx_utility_memory_copy(source_buffer, media_ptr -> fx_media_driver_buffer, bytes_per_sector);
         media_ptr -> fx_media_driver_status =  FX_SUCCESS;
         break;
     }
@@ -297,12 +304,12 @@ void WebServer::APROMDiskDriver(FX_MEDIA *media_ptr)
 bool WebServer::start() {
     UINT status;
 
-#if 0 //ndef BOOTLOADER
-static __attribute__((section(".text#")))
-#include "fs.h"
-#else  // #ifndef BOOTLOADER
+#ifdef BOOTLOADER
 static __attribute__((section(".text#")))
 #include "fsbl.h"
+#else  // #ifndef BOOTLOADER
+static __attribute__((section(".text#")))
+#include "fs.h"
 #endif  // #ifndef BOOTLOADER
 
     status = fx_media_open(&ram_disk, "APROM Disk", APROMDiskDriver, fs_data, media_memory, sizeof(media_memory));

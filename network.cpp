@@ -4,7 +4,7 @@
 #include "nx_m460_eth_driver.h"
 
 #define NX_PACKET_SIZE PKT_FRAME_BUF_SIZE
-#define NX_PACKET_POOL_SIZE PKT_FRAME_BUF_SIZE * RECEIVE_DESC_SIZE
+#define NX_PACKET_POOL_SIZE (PKT_FRAME_BUF_SIZE + sizeof(NX_PACKET)) * RECEIVE_DESC_SIZE
 
 Network &Network::instance() {
     static Network network;
@@ -37,7 +37,7 @@ uint8_t *Network::setup(uint8_t *pointer) {
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wwrite-strings"
 
-    status = nx_packet_pool_create(&client_pool, "NetX Main Packet Pool", MAX_ETHERNET_PAYLOAD, pointer, NX_PACKET_POOL_SIZE);
+    status = nx_packet_pool_create(&client_pool, "NetX Main Packet Pool", NX_PACKET_SIZE, pointer, NX_PACKET_POOL_SIZE);
     pointer = pointer + NX_PACKET_POOL_SIZE;
     if (status)
         goto fail;
