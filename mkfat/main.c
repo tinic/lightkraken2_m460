@@ -191,15 +191,6 @@ void print_contents(FX_MEDIA *media, CHAR *default_dir, ULONG *total_bytes, ULON
     }
 }
 
-int strToBool(const char* str) {
-    if (strcasecmp(str, "YES") == 0 || 
-        strcasecmp(str, "TRUE") == 0 || 
-        strcasecmp(str, "1") == 0) {
-        return 1;
-    }
-    return 0;
-}
-
 int main(int argc, char *argv[]) {
 
 

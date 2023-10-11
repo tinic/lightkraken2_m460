@@ -40,10 +40,15 @@ static void json_stream_callback_func(lwjson_stream_parser_t* jsp, lwjson_stream
         case LWJSON_STREAM_TYPE_NULL:
             printf("null key<%s>\n", key_name);
         break;
-        case LWJSON_STREAM_TYPE_NUMBER:
-            float number = atof(data_buf);
-            printf("number key<%s> value<%g>\n", key_name, number);
-        break;
+        case LWJSON_STREAM_TYPE_NUMBER: {
+            printf("number key<%s> value<%s>\n", key_name, data_buf);
+        } break;
+        case LWJSON_STREAM_TYPE_NONE:
+        case LWJSON_STREAM_TYPE_KEY:
+        case LWJSON_STREAM_TYPE_OBJECT:
+        case LWJSON_STREAM_TYPE_OBJECT_END:
+        case LWJSON_STREAM_TYPE_ARRAY:
+        case LWJSON_STREAM_TYPE_ARRAY_END:
         default:
         break;
     }
