@@ -58,47 +58,55 @@ static UINT http_server_request_notify(NX_HTTP_SERVER *server_ptr, UINT request_
     if (strcmp(resource, "/settings") == 0) {
         switch(request_type) {
             case NX_HTTP_SERVER_GET_REQUEST: {
+                nx_packet_release(packet_ptr);
                 nx_http_server_callback_response_send_extended(server_ptr, NX_HTTP_STATUS_OK, sizeof(NX_HTTP_STATUS_OK)-1, NX_NULL, 0, NX_NULL, 0);
                 return(NX_HTTP_CALLBACK_COMPLETED);
             }
             case NX_HTTP_SERVER_POST_REQUEST:
             case NX_HTTP_SERVER_PUT_REQUEST: {
-                const ULONG length = nx_http_server_content_length_get(packet_ptr);
-                if (length <= 0) {
+                ULONG contentLength = 0;
+                UINT status = nx_http_server_packet_content_find(server_ptr, &packet_ptr, &contentLength);
+                if (status || contentLength <= 0) {
+                    nx_packet_release(packet_ptr);
                     nx_http_server_callback_response_send_extended(server_ptr, NX_HTTP_STATUS_INTERNAL_ERROR, sizeof(NX_HTTP_STATUS_INTERNAL_ERROR)-1, NX_NULL, 0, NX_NULL, 0);
                     return(NX_HTTP_CALLBACK_COMPLETED);
                 }
-                const ULONG maxContentLength = ( Network::instance().pool()->nx_packet_pool_size ) / 4;
-                if (length >= maxContentLength) {
-                    nx_http_server_callback_response_send_extended(server_ptr, NX_HTTP_STATUS_BAD_REQUEST, sizeof(NX_HTTP_STATUS_BAD_REQUEST)-1, NX_NULL, 0, NX_NULL, 0);
-                    return(NX_HTTP_CALLBACK_COMPLETED);
-                }
-
-                ULONG offset = 0;
                 lwjson_stream_parser_t stream_parser;
                 lwjson_stream_init(&stream_parser, json_stream_callback_func);
-                while(offset < length) {
-                    UINT actual_size = 0;
-                    CHAR json_buffer[1024];
-                    UINT status = nx_http_server_content_get_extended(server_ptr, packet_ptr, offset, &json_buffer[0], sizeof(json_buffer), &actual_size);
-                    if (status) {
-                        nx_http_server_callback_response_send_extended(server_ptr, NX_HTTP_STATUS_INTERNAL_ERROR, sizeof(NX_HTTP_STATUS_INTERNAL_ERROR)-1, NX_NULL, 0, NX_NULL, 0);
-                        return(NX_HTTP_CALLBACK_COMPLETED);
-                    }
-                    for (size_t c = 0; c < actual_size; c++) {
-                        lwjsonr_t res = lwjson_stream_parse(&stream_parser, json_buffer[c]);
+                ULONG contentOffset = 0;
+                bool done = false;
+                do {
+                    UCHAR *buf = packet_ptr->nx_packet_prepend_ptr;
+                    ULONG len = packet_ptr->nx_packet_length;
+                    for (size_t c = 0; c < len; c++) {
+                        lwjsonr_t res = lwjson_stream_parse(&stream_parser, buf[c]);
                         if (res == lwjsonSTREAMINPROG ||
                             res == lwjsonSTREAMWAITFIRSTCHAR) {
                             // NOP
                         } else if (res == lwjsonSTREAMDONE) {
                             break;
+                            done = true;
                         } else {
+                            nx_packet_release(packet_ptr);
                             nx_http_server_callback_response_send_extended(server_ptr, NX_HTTP_STATUS_BAD_REQUEST, sizeof(NX_HTTP_STATUS_BAD_REQUEST)-1, NX_NULL, 0, NX_NULL, 0);
                             return(NX_HTTP_CALLBACK_COMPLETED);
                         }
                     }
-                    offset += actual_size;
-                }
+                    contentOffset += len;
+                    if (!done) {
+                        done = contentOffset >= contentLength;
+                    }
+                    if (!done) {
+                        nx_packet_release(packet_ptr);
+                        status = nx_tcp_socket_receive(&(server_ptr -> nx_http_server_socket), &packet_ptr, NX_HTTP_SERVER_TIMEOUT_RECEIVE);
+                        if (status) {
+                            nx_http_server_callback_response_send_extended(server_ptr, NX_HTTP_STATUS_REQUEST_TIMEOUT, sizeof(NX_HTTP_STATUS_REQUEST_TIMEOUT)-1, NX_NULL, 0, NX_NULL, 0);
+                            return(NX_HTTP_CALLBACK_COMPLETED);
+                        }
+                    }
+                } while (!done);
+                nx_packet_release(packet_ptr);
+                printf("free %d", Network::instance().pool()->nx_packet_pool_available);
                 nx_http_server_callback_response_send_extended(server_ptr, NX_HTTP_STATUS_OK, sizeof(NX_HTTP_STATUS_OK)-1, NX_NULL, 0, NX_NULL, 0);
                 return(NX_HTTP_CALLBACK_COMPLETED);
             }
