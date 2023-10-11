@@ -141,10 +141,10 @@ UINT WebServer::postRequestUpload(
     ULONG offset = 0, chunk_length = 0, total_length = 0;
     UCHAR buffer[MAX_ETHERNET_PAYLOAD + 1]; // plus 1 for null termination
     while(nx_http_server_get_entity_header(server_ptr, &packet_ptr, buffer, sizeof(buffer)) == NX_SUCCESS) {
+        buffer[chunk_length] = 0;
         if (strstr((const char *)buffer, "application/octet-stream") != NULL) {
             while(nx_http_server_get_entity_content(server_ptr, &packet_ptr, &offset, &chunk_length) == NX_SUCCESS) {
                 nx_packet_data_extract_offset(packet_ptr, offset, buffer, chunk_length, &chunk_length);
-                buffer[chunk_length] = 0;
                 total_length += chunk_length;
             }
         }
@@ -239,45 +239,45 @@ void WebServer::APROMDiskDriver(FX_MEDIA *media_ptr)
     {
     case FX_DRIVER_READ: {
         UCHAR *source_buffer =  
-            ((UCHAR *)media_ptr -> fx_media_driver_info) +
-                    ((media_ptr -> fx_media_driver_logical_sector + 
-                      media_ptr -> fx_media_hidden_sectors) * 
-                      media_ptr -> fx_media_bytes_per_sector);
+            ((UCHAR *)media_ptr->fx_media_driver_info) +
+                    ((media_ptr->fx_media_driver_logical_sector + 
+                      media_ptr->fx_media_hidden_sectors) * 
+                      media_ptr->fx_media_bytes_per_sector);
         _fx_utility_memory_copy(source_buffer, 
-                                media_ptr -> fx_media_driver_buffer, 
-                                media_ptr -> fx_media_driver_sectors * 
-                                media_ptr -> fx_media_bytes_per_sector);
-        media_ptr -> fx_media_driver_status =  FX_SUCCESS;
+                                media_ptr->fx_media_driver_buffer, 
+                                media_ptr->fx_media_driver_sectors * 
+                                media_ptr->fx_media_bytes_per_sector);
+        media_ptr->fx_media_driver_status =  FX_SUCCESS;
         break;
     }
 
     case FX_DRIVER_FLUSH: {
-        media_ptr -> fx_media_driver_status =  FX_SUCCESS;
+        media_ptr->fx_media_driver_status = FX_SUCCESS;
         break;
     }
 
     case FX_DRIVER_ABORT: {
-        media_ptr -> fx_media_driver_status =  FX_SUCCESS;
+        media_ptr->fx_media_driver_status = FX_SUCCESS;
         break;
     }
 
     case FX_DRIVER_INIT: {
-        media_ptr -> fx_media_driver_status =  FX_SUCCESS;
+        media_ptr->fx_media_driver_status = FX_SUCCESS;
         break;
     }
 
     case FX_DRIVER_UNINIT: {
-        media_ptr -> fx_media_driver_status =  FX_SUCCESS;
+        media_ptr->fx_media_driver_status = FX_SUCCESS;
         break;
     }
 
     case FX_DRIVER_BOOT_READ: {
-        UCHAR *source_buffer = (UCHAR *)media_ptr -> fx_media_driver_info;
+        UCHAR *source_buffer = (UCHAR *)media_ptr->fx_media_driver_info;
         if ( (source_buffer[0] != (UCHAR)0xEB)  ||
             ((source_buffer[1] != (UCHAR)0x34)  &&
              (source_buffer[1] != (UCHAR)0x76)) ||          /* exFAT jump code.  */
              (source_buffer[2] != (UCHAR)0x90)) {
-            media_ptr -> fx_media_driver_status =  FX_MEDIA_INVALID;
+            media_ptr->fx_media_driver_status = FX_MEDIA_INVALID;
             return;
         }
         UINT bytes_per_sector = _fx_utility_16_unsigned_read(&source_buffer[FX_BYTES_SECTOR]);
