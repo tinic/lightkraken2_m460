@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 
+#include "fx_api.h"
 #include "tx_api.h"
 #include "nx_api.h"
 #include "nx_auto_ip.h"
@@ -31,6 +32,8 @@ private:
 
     static UINT requestNotifyCallback(NX_HTTP_SERVER *server_ptr, UINT request_type, CHAR *resource, NX_PACKET *packet_ptr);
     UINT requestNotify(NX_HTTP_SERVER *server_ptr, UINT request_type, CHAR *resource, NX_PACKET *packet_ptr);
+
+    static void APROMDiskDriver(FX_MEDIA *media_ptr);
 
     NX_HTTP_SERVER http_server {};
     FX_MEDIA ram_disk {};

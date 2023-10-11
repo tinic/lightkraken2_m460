@@ -68,9 +68,14 @@ UINT WebServer::postRequestJson(
 
     ULONG contentLength = 0;
     UINT status = nx_http_server_packet_content_find(server_ptr, &packet_ptr, &contentLength);
-    if (status || contentLength <= 0) {
+    if (status) {
         nx_packet_release(packet_ptr);
-        nx_http_server_callback_response_send_extended(server_ptr, NX_HTTP_STATUS_INTERNAL_ERROR, sizeof(NX_HTTP_STATUS_INTERNAL_ERROR)-1, NX_NULL, 0, NX_NULL, 0);
+        nx_http_server_callback_response_send_extended(server_ptr, NX_HTTP_STATUS_REQUEST_TIMEOUT, sizeof(NX_HTTP_STATUS_REQUEST_TIMEOUT)-1, NX_NULL, 0, NX_NULL, 0);
+        return(NX_HTTP_CALLBACK_COMPLETED);
+    }
+    if (contentLength == 0) {
+        nx_packet_release(packet_ptr);
+        nx_http_server_callback_response_send_extended(server_ptr, NX_HTTP_STATUS_NO_CONTENT, sizeof(NX_HTTP_STATUS_NO_CONTENT)-1, NX_NULL, 0, NX_NULL, 0);
         return(NX_HTTP_CALLBACK_COMPLETED);
     }
     lwjson_stream_parser_t stream_parser;
@@ -78,12 +83,13 @@ UINT WebServer::postRequestJson(
     ULONG contentOffset = 0;
     bool done = false;
     do {
-        UCHAR *buf = packet_ptr->nx_packet_prepend_ptr;
-        ULONG len = packet_ptr->nx_packet_length;
-        for (size_t c = 0; c < len; c++) {
-            lwjsonr_t res = lwjson_stream_parse(&stream_parser, buf[c]);
+        UCHAR *jsonBuf = packet_ptr->nx_packet_prepend_ptr;
+        ULONG jsonLen = packet_ptr->nx_packet_length;
+        for (size_t c = 0; c < jsonLen; c++) {
+            lwjsonr_t res = lwjson_stream_parse(&stream_parser, jsonBuf[c]);
             if (res == lwjsonSTREAMINPROG ||
-                res == lwjsonSTREAMWAITFIRSTCHAR) {
+                res == lwjsonSTREAMWAITFIRSTCHAR ||
+                res == lwjsonOK) {
                 // NOP
             } else if (res == lwjsonSTREAMDONE) {
                 break;
@@ -94,7 +100,7 @@ UINT WebServer::postRequestJson(
                 return(NX_HTTP_CALLBACK_COMPLETED);
             }
         }
-        contentOffset += len;
+        contentOffset += jsonLen;
         if (!done) {
             done = contentOffset >= contentLength;
         }
@@ -154,8 +160,6 @@ uint8_t *WebServer::setup(uint8_t *pointer) {
         goto fail;
     }
 
-
-
     static NX_HTTP_SERVER_MIME_MAP map[] = {
         {"js",     "text/javascript"},
         {"css",    "text/css"},
@@ -171,15 +175,7 @@ fail:
     while(1) {}
 }
 
-#ifndef BOOTLOADER
-__attribute__((section(".text#")))
-#include "fs.h"
-#else  // #ifndef BOOTLOADER
-__attribute__((section(".text#")))
-#include "fsbl.h"
-#endif  // #ifndef BOOTLOADER
-
-static VOID  _fx_ro_ram_driver(FX_MEDIA *media_ptr)
+void WebServer::APROMDiskDriver(FX_MEDIA *media_ptr)
 {
     switch (media_ptr -> fx_media_driver_request)
     {
@@ -251,7 +247,15 @@ static VOID  _fx_ro_ram_driver(FX_MEDIA *media_ptr)
 bool WebServer::start() {
     UINT status;
 
-    status = fx_media_open(&ram_disk, "APROM Disk", _fx_ro_ram_driver, fs_data, media_memory, sizeof(media_memory));
+#ifndef BOOTLOADER
+static __attribute__((section(".text#")))
+#include "fs.h"
+#else  // #ifndef BOOTLOADER
+static __attribute__((section(".text#")))
+#include "fsbl.h"
+#endif  // #ifndef BOOTLOADER
+
+    status = fx_media_open(&ram_disk, "APROM Disk", APROMDiskDriver, fs_data, media_memory, sizeof(media_memory));
     if (status) {
         return false;
     }
