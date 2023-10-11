@@ -2,6 +2,9 @@
 #include "network.h"
 #include "lwjson/lwjson.h"
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wwrite-strings"
+
 WebServer &WebServer::instance() {
     static WebServer webserver;
     if (!webserver.initialized) {
@@ -14,10 +17,12 @@ WebServer &WebServer::instance() {
 void WebServer::init() {
 }
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wwrite-strings"
+#ifndef BOOTLOADER
+void WebServer::jsonStreamSettingsCallback(lwjson_stream_parser_t* jsp, lwjson_stream_type_t type) {
+    WebServer::instance().jsonStreamSettings(jsp, type);
+}
 
-static void json_stream_callback_func(lwjson_stream_parser_t* jsp, lwjson_stream_type_t type) {
+void WebServer::jsonStreamSettings(lwjson_stream_parser_t* jsp, lwjson_stream_type_t type) {
     if (jsp == NULL) {
         return;
     }
@@ -54,7 +59,67 @@ static void json_stream_callback_func(lwjson_stream_parser_t* jsp, lwjson_stream
     }
 }
 
-static UINT http_server_request_notify(NX_HTTP_SERVER *server_ptr, UINT request_type, CHAR *resource, NX_PACKET *packet_ptr) {
+UINT WebServer::postRequestJson(
+        NX_HTTP_SERVER *server_ptr, 
+        UINT request_type, 
+        CHAR *resource, 
+        NX_PACKET *packet_ptr,
+        lwjson_stream_parser_callback_fn callback) {
+
+    ULONG contentLength = 0;
+    UINT status = nx_http_server_packet_content_find(server_ptr, &packet_ptr, &contentLength);
+    if (status || contentLength <= 0) {
+        nx_packet_release(packet_ptr);
+        nx_http_server_callback_response_send_extended(server_ptr, NX_HTTP_STATUS_INTERNAL_ERROR, sizeof(NX_HTTP_STATUS_INTERNAL_ERROR)-1, NX_NULL, 0, NX_NULL, 0);
+        return(NX_HTTP_CALLBACK_COMPLETED);
+    }
+    lwjson_stream_parser_t stream_parser;
+    lwjson_stream_init(&stream_parser, callback);
+    ULONG contentOffset = 0;
+    bool done = false;
+    do {
+        UCHAR *buf = packet_ptr->nx_packet_prepend_ptr;
+        ULONG len = packet_ptr->nx_packet_length;
+        for (size_t c = 0; c < len; c++) {
+            lwjsonr_t res = lwjson_stream_parse(&stream_parser, buf[c]);
+            if (res == lwjsonSTREAMINPROG ||
+                res == lwjsonSTREAMWAITFIRSTCHAR) {
+                // NOP
+            } else if (res == lwjsonSTREAMDONE) {
+                break;
+                done = true;
+            } else {
+                nx_packet_release(packet_ptr);
+                nx_http_server_callback_response_send_extended(server_ptr, NX_HTTP_STATUS_BAD_REQUEST, sizeof(NX_HTTP_STATUS_BAD_REQUEST)-1, NX_NULL, 0, NX_NULL, 0);
+                return(NX_HTTP_CALLBACK_COMPLETED);
+            }
+        }
+        contentOffset += len;
+        if (!done) {
+            done = contentOffset >= contentLength;
+        }
+        if (!done) {
+            nx_packet_release(packet_ptr);
+            status = nx_tcp_socket_receive(&(server_ptr -> nx_http_server_socket), &packet_ptr, NX_HTTP_SERVER_TIMEOUT_RECEIVE);
+            if (status) {
+                nx_http_server_callback_response_send_extended(server_ptr, NX_HTTP_STATUS_REQUEST_TIMEOUT, sizeof(NX_HTTP_STATUS_REQUEST_TIMEOUT)-1, NX_NULL, 0, NX_NULL, 0);
+                return(NX_HTTP_CALLBACK_COMPLETED);
+            }
+        }
+    } while (!done);
+    nx_packet_release(packet_ptr);
+    nx_http_server_callback_response_send_extended(server_ptr, NX_HTTP_STATUS_OK, sizeof(NX_HTTP_STATUS_OK)-1, NX_NULL, 0, NX_NULL, 0);
+    return(NX_HTTP_CALLBACK_COMPLETED);
+}
+
+#endif  // #ifndef BOOTLOADER
+
+UINT WebServer::requestNotifyCallback(NX_HTTP_SERVER *server_ptr, UINT request_type, CHAR *resource, NX_PACKET *packet_ptr) {
+    return WebServer::instance().requestNotify(server_ptr, request_type, resource, packet_ptr);
+}
+
+UINT WebServer::requestNotify(NX_HTTP_SERVER *server_ptr, UINT request_type, CHAR *resource, NX_PACKET *packet_ptr) {
+#ifndef BOOTLOADER
     if (strcmp(resource, "/settings") == 0) {
         switch(request_type) {
             case NX_HTTP_SERVER_GET_REQUEST: {
@@ -64,58 +129,17 @@ static UINT http_server_request_notify(NX_HTTP_SERVER *server_ptr, UINT request_
             }
             case NX_HTTP_SERVER_POST_REQUEST:
             case NX_HTTP_SERVER_PUT_REQUEST: {
-                ULONG contentLength = 0;
-                UINT status = nx_http_server_packet_content_find(server_ptr, &packet_ptr, &contentLength);
-                if (status || contentLength <= 0) {
-                    nx_packet_release(packet_ptr);
-                    nx_http_server_callback_response_send_extended(server_ptr, NX_HTTP_STATUS_INTERNAL_ERROR, sizeof(NX_HTTP_STATUS_INTERNAL_ERROR)-1, NX_NULL, 0, NX_NULL, 0);
-                    return(NX_HTTP_CALLBACK_COMPLETED);
-                }
-                lwjson_stream_parser_t stream_parser;
-                lwjson_stream_init(&stream_parser, json_stream_callback_func);
-                ULONG contentOffset = 0;
-                bool done = false;
-                do {
-                    UCHAR *buf = packet_ptr->nx_packet_prepend_ptr;
-                    ULONG len = packet_ptr->nx_packet_length;
-                    for (size_t c = 0; c < len; c++) {
-                        lwjsonr_t res = lwjson_stream_parse(&stream_parser, buf[c]);
-                        if (res == lwjsonSTREAMINPROG ||
-                            res == lwjsonSTREAMWAITFIRSTCHAR) {
-                            // NOP
-                        } else if (res == lwjsonSTREAMDONE) {
-                            break;
-                            done = true;
-                        } else {
-                            nx_packet_release(packet_ptr);
-                            nx_http_server_callback_response_send_extended(server_ptr, NX_HTTP_STATUS_BAD_REQUEST, sizeof(NX_HTTP_STATUS_BAD_REQUEST)-1, NX_NULL, 0, NX_NULL, 0);
-                            return(NX_HTTP_CALLBACK_COMPLETED);
-                        }
-                    }
-                    contentOffset += len;
-                    if (!done) {
-                        done = contentOffset >= contentLength;
-                    }
-                    if (!done) {
-                        nx_packet_release(packet_ptr);
-                        status = nx_tcp_socket_receive(&(server_ptr -> nx_http_server_socket), &packet_ptr, NX_HTTP_SERVER_TIMEOUT_RECEIVE);
-                        if (status) {
-                            nx_http_server_callback_response_send_extended(server_ptr, NX_HTTP_STATUS_REQUEST_TIMEOUT, sizeof(NX_HTTP_STATUS_REQUEST_TIMEOUT)-1, NX_NULL, 0, NX_NULL, 0);
-                            return(NX_HTTP_CALLBACK_COMPLETED);
-                        }
-                    }
-                } while (!done);
-                nx_packet_release(packet_ptr);
-                printf("free %d", Network::instance().pool()->nx_packet_pool_available);
-                nx_http_server_callback_response_send_extended(server_ptr, NX_HTTP_STATUS_OK, sizeof(NX_HTTP_STATUS_OK)-1, NX_NULL, 0, NX_NULL, 0);
-                return(NX_HTTP_CALLBACK_COMPLETED);
+                return postRequestJson(server_ptr, 
+                    request_type, 
+                    resource, 
+                    packet_ptr,
+                    jsonStreamSettingsCallback);
             }
         }
     }
+#endif  // #ifndef BOOTLOADER
     return(NX_SUCCESS);
 }
-
-#pragma GCC diagnostic pop
 
 uint8_t *WebServer::setup(uint8_t *pointer) {
     UINT status;
@@ -124,10 +148,7 @@ uint8_t *WebServer::setup(uint8_t *pointer) {
 
     fx_system_initialize();
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wwrite-strings"
-
-    status = nx_http_server_create(&http_server, "WebServer", Network::instance().ip(), &ram_disk, pointer, http_server_stack_size, Network::instance().pool(), NX_NULL, http_server_request_notify);
+    status = nx_http_server_create(&http_server, "WebServer", Network::instance().ip(), &ram_disk, pointer, http_server_stack_size, Network::instance().pool(), NX_NULL, requestNotifyCallback);
     pointer = pointer + http_server_stack_size;
     if (status) {
         goto fail;
@@ -141,8 +162,6 @@ uint8_t *WebServer::setup(uint8_t *pointer) {
         {"json",   "application/json"},
         {"svg",    "image/svg+xml"}
     };
-
-#pragma GCC diagnostic pop
 
     nx_http_server_mime_maps_additional_set(&http_server, map, 4);
 
@@ -232,15 +251,10 @@ static VOID  _fx_ro_ram_driver(FX_MEDIA *media_ptr)
 bool WebServer::start() {
     UINT status;
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wwrite-strings"
-
     status = fx_media_open(&ram_disk, "APROM Disk", _fx_ro_ram_driver, fs_data, media_memory, sizeof(media_memory));
     if (status) {
         return false;
     }
-
-#pragma GCC diagnostic pop
 
     status = nx_http_server_start(&http_server);
     if (status) {
@@ -249,3 +263,5 @@ bool WebServer::start() {
 
     return true;
 }
+
+#pragma GCC diagnostic pop

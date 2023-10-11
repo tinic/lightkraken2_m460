@@ -8,6 +8,10 @@
 #include "nx_auto_ip.h"
 #include "nxd_http_server.h"
 
+#ifndef BOOTLOADER
+#include "lwjson/lwjson.h"
+#endif  // #ifndef BOOTLOADER
+
 class WebServer {
 public:
     static WebServer &instance();
@@ -18,6 +22,15 @@ public:
 private:
     void init();
     bool initialized = false;
+
+#ifndef BOOTLOADER
+    static void jsonStreamSettingsCallback(lwjson_stream_parser_t* jsp, lwjson_stream_type_t type);
+    void jsonStreamSettings(lwjson_stream_parser_t* jsp, lwjson_stream_type_t type);
+    UINT postRequestJson(NX_HTTP_SERVER *server_ptr, UINT request_type, CHAR *resource, NX_PACKET *packet_ptr, lwjson_stream_parser_callback_fn callback);
+#endif  // #ifndef BOOTLOADER
+
+    static UINT requestNotifyCallback(NX_HTTP_SERVER *server_ptr, UINT request_type, CHAR *resource, NX_PACKET *packet_ptr);
+    UINT requestNotify(NX_HTTP_SERVER *server_ptr, UINT request_type, CHAR *resource, NX_PACKET *packet_ptr);
 
     NX_HTTP_SERVER http_server {};
     FX_MEDIA ram_disk {};
