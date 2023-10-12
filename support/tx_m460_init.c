@@ -81,6 +81,8 @@ void _tx_initialize_low_level(void) {
   // SCB->SHP[9] = 0; // reserved
   SCB->SHP[10] = 0xFF;
   SCB->SHP[11] = 0x40;
+
+  __enable_irq();
 }
 
 // Timer interrupt handler

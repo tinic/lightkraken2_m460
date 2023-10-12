@@ -156,9 +156,9 @@ set(COMMON_SOURCES
     ${PROJECT_SOURCE_DIR}/network.cpp
     ${PROJECT_SOURCE_DIR}/settingsdb.cpp
     ${PROJECT_SOURCE_DIR}/webserver.cpp
-    ${PROJECT_SOURCE_DIR}/support/fal_cfg.c
+    ${PROJECT_SOURCE_DIR}/support/fal_m460.c
     ${PROJECT_SOURCE_DIR}/support/stubs.c
-    ${PROJECT_SOURCE_DIR}/support/tx_initialize_low_level.c
+    ${PROJECT_SOURCE_DIR}/support/tx_m460_init.c
     ${PROJECT_SOURCE_DIR}/support/emac/synopGMAC_Dev.c
     ${PROJECT_SOURCE_DIR}/support/emac/synopGMAC_network_interface.c
     ${PROJECT_SOURCE_DIR}/support/emac/synopGMAC_plat.c
@@ -281,7 +281,6 @@ target_link_options(${TARGET_NAME_RUNTIME} PRIVATE "$<$<CONFIG:RELEASE>:${LD_REL
 
 # Bootloader
 target_include_directories(${TARGET_NAME_BOOTLOADER} PRIVATE ${CMAKE_BINARY_DIR})
-
 target_compile_definitions(${TARGET_NAME_BOOTLOADER} PRIVATE BOOTLOADER)
 
 target_compile_options(${TARGET_NAME_BOOTLOADER} PRIVATE "$<$<COMPILE_LANGUAGE:C>:${CC_COMMON_FLAGS}>")

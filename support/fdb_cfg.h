@@ -34,7 +34,7 @@ SOFTWARE.
 #define FDB_USING_FAL_MODE
 
 #ifdef FDB_USING_FAL_MODE
-#define FDB_WRITE_GRAN 32
+#define FDB_WRITE_GRAN 8
 #endif
 
 /* log print macro. default EF_PRINT macro is printf() */
