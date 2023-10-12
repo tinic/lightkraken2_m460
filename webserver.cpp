@@ -185,6 +185,12 @@ UINT WebServer::requestNotifyCallback(NX_HTTP_SERVER *server_ptr, UINT request_t
 UINT WebServer::requestNotify(NX_HTTP_SERVER *server_ptr, UINT request_type, CHAR *resource, NX_PACKET *packet_ptr) {
     switch(request_type) {
         case NX_HTTP_SERVER_GET_REQUEST: {
+            if (strcmp(resource, "/") == 0) {
+                CHAR *redirect = "<html><head><meta http-equiv=\"refresh\" content=\"0; url='./index.html'\"/></head><body></body></html>";
+                nx_packet_release(packet_ptr);
+                nx_http_server_callback_response_send_extended(server_ptr, NX_HTTP_STATUS_OK, sizeof(NX_HTTP_STATUS_OK)-1, redirect, strlen(redirect), NX_NULL, 0);
+                return(NX_HTTP_CALLBACK_COMPLETED);
+            }
 #ifndef BOOTLOADER
             if (strcmp(resource, "/settings") == 0) {
                 SettingsDB::instance().dump();
