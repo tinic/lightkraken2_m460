@@ -158,7 +158,7 @@ void SettingsDB::dump() {
                     NXD_ADDRESS value {};
                     fdb_blob_read(reinterpret_cast<fdb_db_t>(&kvdb), fdb_kv_to_blob(cur_kv, fdb_blob_make(&blob, &value, sizeof(value))));
                     if (value.nxd_ip_version == NX_IP_VERSION_V4) {
-                        printf("Addr:   <%s> <%d::%d::%d::%d>\n", 
+                        printf("Addr:   <%s> <%d.%d.%d.%d>\n", 
                             cur_kv->name, 
                             (value.nxd_ip_address.v4>>24)&0xFF,
                             (value.nxd_ip_address.v4>>16)&0xFF,
