@@ -41,6 +41,7 @@ SOFTWARE.
 
 #include <alloca.h>
 #include <string.h>
+#include <stdlib.h>
 
 SettingsDB &SettingsDB::instance() {
     static SettingsDB settingsDB;
@@ -142,7 +143,7 @@ void SettingsDB::dump() {
                 case 'f': {
                     float value = 0;
                     fdb_blob_read(reinterpret_cast<fdb_db_t>(&kvdb), fdb_kv_to_blob(cur_kv, fdb_blob_make(&blob, &value, sizeof(value))));
-                    //printf("Float:  <%s> <%f>\n", cur_kv->name, double(value));
+                    printf("Float:  <%s> <%f>\n", cur_kv->name, double(value));
                 } break;
                 case 'n': {
                     char value = 0;
@@ -249,7 +250,7 @@ void SettingsDB::setBool(const char *key, bool value) {
 }
 
 void SettingsDB::setNumber(const char *key, float value) {
-    //printf("setNumber <%s> <%f>\n", key, double(value));
+    printf("setNumber <%s> <%f>\n", key, double(value));
     char *keyF = reinterpret_cast<char *>(alloca(strlen(key)+2));
     strcpy(keyF, key);
     strcat(keyF, "@f");

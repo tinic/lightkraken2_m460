@@ -49,7 +49,7 @@ void tx_application_define(void *first_unused_memory) {
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wwrite-strings"
 
-    const size_t startup_stack_size = 1024;
+    const size_t startup_stack_size = 4096;
     tx_thread_create(&thread_startup, "startup", thread_startup_entry, 0, pointer, startup_stack_size, 1, 1, TX_NO_TIME_SLICE, TX_AUTO_START);
     pointer = pointer + startup_stack_size;
 
