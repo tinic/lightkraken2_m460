@@ -36,9 +36,9 @@ static int init(void) {
 }
 
 static int read(long offset, uint8_t *buf, size_t size) {
-    uint32_t addr = nor_flash0.addr + offset;
-    for (size_t i = 0; i < size; i++, addr++, buf++) {
-        *buf = *(uint8_t *)addr;
+    uint8_t *addr = ((uint8_t *)nor_flash0.addr) + offset;
+    for (size_t i = 0; i < size; i++) {
+        buf[i] = addr[i];
     }
     return size;
 }
@@ -47,26 +47,39 @@ static int read(long offset, uint8_t *buf, size_t size) {
 static int write(long offset, const uint8_t *buf, size_t size) {
     uint32_t addr = nor_flash0.addr + offset;
 
+    if(addr%8 != 0) {
+        while(1) { }
+    }
+
     SYS_UnlockReg();
 
     FMC_ENABLE_AP_UPDATE();
 
-    uint32_t write_data[2];
-    for (size_t i = 0; i < size; i += 8, buf+=8, addr += 8) {
-        memcpy(&write_data, buf, 8);
-        FMC_Write8Bytes(addr, write_data[0], write_data[1]);
+    uint32_t data[2];
+    for (size_t i = 0; i < size; i += 8) {
+        memcpy(&data, &buf[i], sizeof(data));
+        if (data[0] != 0xFFFFFFFF || data[1] != 0xFFFFFFFF) {
+            FMC_Write8Bytes(addr + i, data[0], data[1]);
+        }
+    }
+
+    const uint8_t *wrt = (const uint8_t *)buf; 
+    const uint8_t *org = (const uint8_t *)addr; 
+    if (memcmp(wrt, org, size) != 0) {
+        while(1) { }
     }
 
     FMC_DISABLE_AP_UPDATE();
 
     SYS_LockReg();
+
     return size;
 }
 
 
 static int erase(long offset, size_t size) {
     if (offset % FLASH_DB_BLOCK_SIZE != 0) {
-        return 0;
+        while(1) { }
     }
 
     uint32_t addr = nor_flash0.addr + offset;

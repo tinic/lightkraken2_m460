@@ -23,10 +23,13 @@ SOFTWARE.
 */
 #include "network.h"
 #include "webserver.h"
+#include "settingsdb.h"
 
 static TX_THREAD thread_startup {};
 void thread_startup_entry(ULONG thread_input) {
     NX_PARAMETER_NOT_USED(thread_input);
+
+    SettingsDB::instance().dump();
 
     if (!Network::instance().start()) {
         return;

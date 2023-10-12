@@ -31,7 +31,7 @@ SOFTWARE.
 #define FLASH_DB_LENGTH (128*1024)
 #define FLASH_DB_START_ADDRESS (0x100000-FLASH_DB_LENGTH)
 #define FLASH_DB_BLOCK_SIZE 4096
-#define FLASH_DB_WRITE_GRAN 8
+#define FLASH_DB_WRITE_GRAN 64
 
 /* ===================== Flash device Configuration ========================= */
 extern const struct fal_flash_dev nor_flash0;

@@ -41,6 +41,7 @@ public:
     void setNull(const char *key);
 
     void dump();
+    void erase();
 
 private:
     void init();
@@ -50,6 +51,7 @@ private:
     static void unlock();
 
     struct fdb_kvdb kvdb {};
+
 };
 
 #endif  // #ifndef _SETTINGSDB_H_

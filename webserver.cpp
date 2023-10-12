@@ -118,7 +118,7 @@ UINT WebServer::postRequestJson(
     bool done = false;
     do {
         UCHAR *jsonBuf = packet_ptr->nx_packet_prepend_ptr;
-        ULONG jsonLen = packet_ptr->nx_packet_length;
+        ULONG jsonLen = ULONG(packet_ptr->nx_packet_append_ptr - packet_ptr->nx_packet_prepend_ptr);
         for (size_t c = 0; c < jsonLen; c++) {
             lwjsonr_t res = lwjson_stream_parse(&stream_parser, jsonBuf[c]);
             if (res == lwjsonSTREAMINPROG ||
@@ -126,8 +126,8 @@ UINT WebServer::postRequestJson(
                 res == lwjsonOK) {
                 // NOP
             } else if (res == lwjsonSTREAMDONE) {
-                break;
                 done = true;
+                break;
             } else {
                 nx_packet_release(packet_ptr);
                 nx_http_server_callback_response_send_extended(server_ptr, NX_HTTP_STATUS_BAD_REQUEST, sizeof(NX_HTTP_STATUS_BAD_REQUEST)-1, NX_NULL, 0, NX_NULL, 0);
@@ -148,6 +148,7 @@ UINT WebServer::postRequestJson(
         }
     } while (!done);
     nx_packet_release(packet_ptr);
+    SettingsDB::instance().dump();
     nx_http_server_callback_response_send_extended(server_ptr, NX_HTTP_STATUS_OK, sizeof(NX_HTTP_STATUS_OK)-1, NX_NULL, 0, NX_NULL, 0);
     return(NX_HTTP_CALLBACK_COMPLETED);
 }
