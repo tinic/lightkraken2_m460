@@ -125,7 +125,6 @@ void SettingsDB::dump() {
         size_t data_size = (size_t)cur_kv->value_len;
         struct fdb_blob blob {};
 
-        printf("%s\n", cur_kv->name);
         size_t name_len = strlen(cur_kv->name);
         if (name_len > 2 && cur_kv->name[name_len-2] == '@') {
             switch(cur_kv->name[name_len-1]) {
